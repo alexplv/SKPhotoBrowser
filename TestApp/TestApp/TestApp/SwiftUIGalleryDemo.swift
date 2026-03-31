@@ -80,33 +80,33 @@ struct SwiftUIGalleryDemoView: View {
     private func thumbnailCell(index: Int, urlString: String) -> some View {
         let image = imageStore.images[index]
 
-        ZStack {
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                Color.gray.opacity(0.15)
+        Color.clear
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Color.gray.opacity(0.15)
+                }
             }
-        }
-        .frame(minWidth: 0, maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fill)
-        .clipped()
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .overlay {
-            ViewAnchor { view in
-                anchorViews[index] = view
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .overlay {
+                ViewAnchor { view in
+                    anchorViews[index] = view
+                }
             }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            openBrowser(at: index)
-        }
-        .onAppear {
-            if let url = URL(string: urlString) {
-                imageStore.load(index: index, url: url)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                openBrowser(at: index)
             }
-        }
+            .onAppear {
+                if let url = URL(string: urlString) {
+                    imageStore.load(index: index, url: url)
+                }
+            }
     }
 
     private func openBrowser(at index: Int) {
