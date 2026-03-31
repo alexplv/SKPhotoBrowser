@@ -403,65 +403,69 @@ internal extension SKPhotoBrowser {
         if sender.state == .began {
             firstX = zoomingScrollView.center.x
             firstY = zoomingScrollView.center.y
-            hideControls()
             setNeedsStatusBarAppearanceUpdate()
         }
 
         let translationY = sender.translation(in: view).y
-        let translatedPoint = CGPoint(x: firstX, y: firstY + translationY)
-        zoomingScrollView.center = translatedPoint
-
-        // Progress: 0 = centered, 1 = fully dragged away
         let dragDistance = abs(translationY)
         let progress = min(dragDistance / viewHalfHeight, 1.0)
 
-        // Scale down proportionally as the image is dragged (like Apple Photos)
-        let scale = 1.0 - progress * 0.25 // shrinks to 0.75 at max drag
+        // Move image
+        zoomingScrollView.center = CGPoint(x: firstX, y: firstY + translationY)
+
+        // Scale — gentle ease-in curve, shrinks to 0.8 at max drag
+        let scale = 1.0 - pow(progress, 1.4) * 0.2
         zoomingScrollView.transform = CGAffineTransform(scaleX: scale, y: scale)
 
-        // Background fade — delayed start, ease-out curve, never fully transparent while dragging
-        let fadeThreshold: CGFloat = 0.15 // no fade until 15% dragged
-        let fadedProgress = max(progress - fadeThreshold, 0) / (1.0 - fadeThreshold)
-        let bgAlpha = 1.0 - pow(fadedProgress, 1.8) * 0.45 // eased, bottoms out at 0.55
+        // Background — delayed start at 20%, soft ease-out, floors at 0.5 alpha
+        let bgThreshold: CGFloat = 0.2
+        let bgProgress = max(progress - bgThreshold, 0) / (1.0 - bgThreshold)
+        let bgAlpha = 1.0 - pow(bgProgress, 2.0) * 0.5
         view.backgroundColor = bgColor.withAlphaComponent(bgAlpha)
 
-        let minOffset: CGFloat = viewHalfHeight / 4
+        // Controls — delayed hide, only after 8% dragged
+        if dragDistance > viewHalfHeight * 0.08 && !areControlsHidden() {
+            hideControls()
+        }
+
+        let dismissThreshold: CGFloat = viewHalfHeight / 4
 
         // gesture end
         if sender.state == .ended {
-            if zoomingScrollView.center.y > viewHalfHeight + minOffset
-                || zoomingScrollView.center.y < viewHalfHeight - minOffset {
+            let isDismissing = zoomingScrollView.center.y > viewHalfHeight + dismissThreshold
+                || zoomingScrollView.center.y < viewHalfHeight - dismissThreshold
 
-                // Continue the image off-screen in the drag direction, then dismiss
+            if isDismissing {
+                // Momentum exit — continue off-screen, then dismiss
                 let velocityY = sender.velocity(in: view).y
                 let direction: CGFloat = translationY > 0 ? 1 : -1
-                // Ensure minimum exit speed so it never feels sluggish
-                let exitSpeed = max(abs(velocityY), 800)
+                let exitSpeed = max(abs(velocityY), 600)
                 let exitTarget = CGPoint(x: firstX, y: zoomingScrollView.center.y + direction * viewHeight)
-                // Spring velocity relative to remaining distance
                 let remaining = abs(exitTarget.y - zoomingScrollView.center.y)
                 let springVelocity = remaining > 0 ? exitSpeed / remaining : 1.0
 
                 UIView.animate(
-                    withDuration: 0.25,
+                    withDuration: 0.35,
                     delay: 0,
                     usingSpringWithDamping: 1.0,
-                    initialSpringVelocity: springVelocity
+                    initialSpringVelocity: springVelocity,
+                    options: .curveEaseOut
                 ) {
                     zoomingScrollView.center = exitTarget
-                    zoomingScrollView.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
+                    zoomingScrollView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
                     self.view.backgroundColor = self.bgColor.withAlphaComponent(0)
                 } completion: { [weak self] _ in
                     self?.determineAndClose()
                 }
 
             } else {
-                // Cancelled — spring back to center, restore scale and background
+                // Cancelled — spring back softly
                 UIView.animate(
-                    withDuration: 0.4,
+                    withDuration: 0.5,
                     delay: 0,
-                    usingSpringWithDamping: 0.85,
-                    initialSpringVelocity: 0.3
+                    usingSpringWithDamping: 0.78,
+                    initialSpringVelocity: 0.2,
+                    options: .curveEaseOut
                 ) {
                     zoomingScrollView.center = CGPoint(x: self.firstX, y: viewHalfHeight)
                     zoomingScrollView.transform = .identity
