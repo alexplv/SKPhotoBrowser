@@ -126,14 +126,18 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         }
 
         senderViewForAnimation = sender
+        sourceCornerRadius = sender.layer.cornerRadius
+
+        // Capture coordinates BEFORE hiding the browser view,
+        // so convert() has the full view hierarchy available
+        let imageFrame = scrollView.imageView.convert(scrollView.imageView.bounds, to: nil)
+        let targetFullFrame = calcOriginFrame(sender)
+        let targetVisible = visibleRect(of: sender)
+
         browser.view.isHidden = true
         backgroundView.isHidden = false
         backgroundView.alpha = 1.0
         backgroundView.backgroundColor = .clear
-        sourceCornerRadius = sender.layer.cornerRadius
-
-        let targetFullFrame = calcOriginFrame(sender)
-        let targetVisible = visibleRect(of: sender)
 
         // Always dismiss to the FULL frame so .scaleAspectFill matches on arrival
         senderViewOriginalFrame = targetFullFrame
@@ -141,10 +145,9 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
 
         if let resizableImageView = resizableImageView {
             let photo = browser.photoAtIndex(browser.currentPageIndex)
-            let frame = scrollView.imageView.convert(scrollView.imageView.bounds, to: nil)
 
             resizableImageView.image = image.rotateImageByOrientation()
-            resizableImageView.frame = frame
+            resizableImageView.frame = imageFrame
             resizableImageView.alpha = 1.0
             resizableImageView.clipsToBounds = true
             resizableImageView.contentMode = photo.contentMode
@@ -162,7 +165,7 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
                 let mask = CALayer()
                 mask.backgroundColor = UIColor.white.cgColor
                 // Start unmasked (full size)
-                mask.frame = CGRect(origin: .zero, size: frame.size)
+                mask.frame = CGRect(origin: .zero, size: imageFrame.size)
                 resizableImageView.layer.mask = mask
                 maskLayer = mask
                 maskTargetFrame = localClippedRect
