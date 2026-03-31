@@ -40,6 +40,9 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
     }
 
     fileprivate var sourceCornerRadius: CGFloat = 0
+    // Mask layer for clipped thumbnails — animated in UIView.animate block
+    fileprivate var maskLayer: CALayer?
+    fileprivate var maskTargetFrame: CGRect = .zero
 
     override init() {
         super.init()
@@ -69,20 +72,35 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
             return
         }
 
+        // Always use the FULL frame so .scaleAspectFill matches the thumbnail's zoom
+        senderViewOriginalFrame = fullFrameInWindow
         finalImageViewFrame = calcFinalFrame(imageRatio)
         sourceCornerRadius = sender.layer.cornerRadius
-
-        // Use visible rect as start position so the animation begins exactly
-        // where the user sees the thumbnail. The full image + .scaleAspectFill
-        // handles the zoom naturally — no manual cropping needed.
-        let isPartiallyClipped = !visibleInWindow.contains(fullFrameInWindow)
-        senderViewOriginalFrame = isPartiallyClipped ? visibleInWindow : fullFrameInWindow
         resizableImageView = UIImageView(image: imageFromView)
+        maskLayer = nil
 
         if let resizableImageView = resizableImageView {
-            resizableImageView.frame = senderViewOriginalFrame
+            resizableImageView.frame = fullFrameInWindow
             resizableImageView.clipsToBounds = true
-            resizableImageView.contentMode = .scaleAspectFill
+            resizableImageView.contentMode = photo.contentMode
+
+            // If partially clipped, apply a mask that shows only the visible portion.
+            // The mask frame will be animated to full size inside UIView.animate.
+            let isPartiallyClipped = !visibleInWindow.contains(fullFrameInWindow)
+            if isPartiallyClipped {
+                let localVisibleRect = CGRect(
+                    x: visibleInWindow.minX - fullFrameInWindow.minX,
+                    y: visibleInWindow.minY - fullFrameInWindow.minY,
+                    width: visibleInWindow.width,
+                    height: visibleInWindow.height
+                )
+                let mask = CALayer()
+                mask.backgroundColor = UIColor.white.cgColor
+                mask.frame = localVisibleRect
+                resizableImageView.layer.mask = mask
+                maskLayer = mask
+                maskTargetFrame = CGRect(origin: .zero, size: finalImageViewFrame.size)
+            }
 
             if sourceCornerRadius != 0 {
                 resizableImageView.layer.masksToBounds = true
@@ -117,10 +135,9 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         let targetFullFrame = calcOriginFrame(sender)
         let targetVisible = visibleRect(of: sender)
 
-        // Use visible rect as the dismiss target so the frame animates
-        // to where the thumbnail actually appears on screen
-        let isTargetClipped = !targetVisible.isEmpty && !targetVisible.contains(targetFullFrame)
-        senderViewOriginalFrame = isTargetClipped ? targetVisible : targetFullFrame
+        // Always dismiss to the FULL frame so .scaleAspectFill matches on arrival
+        senderViewOriginalFrame = targetFullFrame
+        maskLayer = nil
 
         if let resizableImageView = resizableImageView {
             let photo = browser.photoAtIndex(browser.currentPageIndex)
@@ -140,10 +157,22 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
             resizableImageView.contentMode = photo.contentMode
             resizableImageView.layer.cornerRadius = 0
 
-            if let view = senderViewForAnimation, view.layer.cornerRadius != 0 {
-                let duration = (animationDuration * Double(animationDamping))
-                resizableImageView.layer.masksToBounds = true
-                resizableImageView.addCornerRadiusAnimation(0, to: view.layer.cornerRadius, duration: duration)
+            // If target is partially clipped, prepare mask to shrink to visible portion
+            let isTargetClipped = !targetVisible.isEmpty && !targetVisible.contains(targetFullFrame)
+            if isTargetClipped {
+                let localClippedRect = CGRect(
+                    x: targetVisible.minX - targetFullFrame.minX,
+                    y: targetVisible.minY - targetFullFrame.minY,
+                    width: targetVisible.width,
+                    height: targetVisible.height
+                )
+                let mask = CALayer()
+                mask.backgroundColor = UIColor.white.cgColor
+                // Start unmasked (full size)
+                mask.frame = CGRect(origin: .zero, size: frame.size)
+                resizableImageView.layer.mask = mask
+                maskLayer = mask
+                maskTargetFrame = localClippedRect
             }
         }
         dismissAnimation(browser)
@@ -221,7 +250,11 @@ private extension SKAnimator {
                 self.backgroundView.alpha = 1.0
                 self.resizableImageView?.frame = finalFrame
                 self.resizableImageView?.layer.cornerRadius = 0
+                // Expand mask to full size — same spring as frame
+                self.maskLayer?.frame = self.maskTargetFrame
             } completion: { _ in
+                self.resizableImageView?.layer.mask = nil
+                self.maskLayer = nil
                 browser.view.alpha = 1.0
                 browser.view.isHidden = false
                 self.backgroundView.isHidden = true
@@ -255,7 +288,11 @@ private extension SKAnimator {
             self.backgroundView.alpha = 0.0
             self.resizableImageView?.layer.frame = finalFrame
             self.resizableImageView?.layer.cornerRadius = self.sourceCornerRadius
+            // Shrink mask to clipped portion — same spring as frame
+            self.maskLayer?.frame = self.maskTargetFrame
         } completion: { _ in
+            self.resizableImageView?.layer.mask = nil
+            self.maskLayer = nil
             browser.dismissPhotoBrowser(animated: false) {
                 self.resizableImageView?.removeFromSuperview()
                 self.backgroundView.removeFromSuperview()
