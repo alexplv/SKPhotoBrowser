@@ -419,8 +419,11 @@ internal extension SKPhotoBrowser {
         let scale = 1.0 - progress * 0.25 // shrinks to 0.75 at max drag
         zoomingScrollView.transform = CGAffineTransform(scaleX: scale, y: scale)
 
-        // Fade background
-        view.backgroundColor = bgColor.withAlphaComponent(1.0 - progress * 0.5)
+        // Background fade — delayed start, ease-out curve, never fully transparent while dragging
+        let fadeThreshold: CGFloat = 0.15 // no fade until 15% dragged
+        let fadedProgress = max(progress - fadeThreshold, 0) / (1.0 - fadeThreshold)
+        let bgAlpha = 1.0 - pow(fadedProgress, 1.8) * 0.45 // eased, bottoms out at 0.55
+        view.backgroundColor = bgColor.withAlphaComponent(bgAlpha)
 
         let minOffset: CGFloat = viewHalfHeight / 4
 
