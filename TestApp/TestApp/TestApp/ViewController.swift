@@ -29,7 +29,7 @@ private enum Demo: CaseIterable {
     case closeButtonOnly
     case counterHidden
     case customBackground
-    case zoomTransition
+    case thumbnailGrid
 
     var title: String {
         switch self {
@@ -40,7 +40,7 @@ private enum Demo: CaseIterable {
         case .closeButtonOnly:    return "Close Button Only (no swipe)"
         case .counterHidden:      return "Counter Hidden"
         case .customBackground:   return "Custom Background (dark gray)"
-        case .zoomTransition:     return "iOS 18 Zoom Transition"
+        case .thumbnailGrid:      return "Thumbnail Grid (tap to open)"
         }
     }
 
@@ -53,7 +53,7 @@ private enum Demo: CaseIterable {
         case .closeButtonOnly:    return "disableVerticalSwipe = true"
         case .counterHidden:      return "displayCounterLabel = false"
         case .customBackground:   return "backgroundColor = .darkGray"
-        case .zoomTransition:     return "preferredTransition = .zoom (fluid)"
+        case .thumbnailGrid:      return "Grid → modal gallery, like real usage"
         }
     }
 }
@@ -133,7 +133,7 @@ class DemoListViewController: UITableViewController {
             photos = (0..<3).map { makePhoto(index: $0) }
             startIndex = 0
 
-        case .zoomTransition:
+        case .thumbnailGrid:
             let gridVC = ThumbnailGridViewController()
             navigationController?.pushViewController(gridVC, animated: true)
             return
@@ -192,7 +192,7 @@ extension DemoListViewController: SKPhotoBrowserDelegate {
     }
 }
 
-// MARK: - iOS 18 Zoom Transition Demo
+// MARK: - Thumbnail Grid Demo
 
 class ThumbnailGridViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate {
 
@@ -200,10 +200,10 @@ class ThumbnailGridViewController: UIViewController, UICollectionViewDataSource,
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Tap to Zoom"
+        title = "Tap a Photo"
         view.backgroundColor = .systemBackground
 
-        let layout = UICollectionViewCompositionalLayout { _, environment in
+        let layout = UICollectionViewCompositionalLayout { _, _ in
             let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0 / 3.0),
                                                   heightDimension: .fractionalWidth(1.0 / 3.0))
             let item = NSCollectionLayoutItem(layoutSize: itemSize)
@@ -237,35 +237,26 @@ class ThumbnailGridViewController: UIViewController, UICollectionViewDataSource,
     // MARK: - Delegate
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let tappedIndex = indexPath.item
-
-        // Disable SKPhotoBrowser's own swipe-to-dismiss — the zoom transition handles interactive pop
-        SKPhotoBrowserOptions.disableVerticalSwipe = true
-        SKPhotoBrowserOptions.displayCloseButton = false
+        SKPhotoBrowserOptions.displayCloseButton = true
         SKPhotoBrowserOptions.displayAction = false
         SKPhotoBrowserOptions.displayBackAndForwardButton = false
         SKPhotoBrowserOptions.displayCounterLabel = true
+        SKPhotoBrowserOptions.disableVerticalSwipe = false
 
         let photos: [SKPhoto] = sampleURLs.map { SKPhoto.photoWithImageURL($0) }
-        let browser = SKPhotoBrowser(photos: photos, initialPageIndex: tappedIndex)
-
-        // iOS 18 fluid zoom — source view updates as user pages between photos
-        browser.preferredTransition = .zoom { [weak self] context in
-            guard let self,
-                  let browser = context.zoomedViewController as? SKPhotoBrowser else { return nil }
-            let ip = IndexPath(item: browser.currentPageIndex, section: 0)
-            return (self.collectionView.cellForItem(at: ip) as? ThumbnailCell)?.imageView
-        }
-
-        navigationController?.pushViewController(browser, animated: true)
+        let browser = SKPhotoBrowser(photos: photos, initialPageIndex: indexPath.item)
+        browser.delegate = self
+        present(browser, animated: true)
     }
 }
 
 extension ThumbnailGridViewController: SKPhotoBrowserDelegate {
+    func didShowPhotoAtIndex(_ browser: SKPhotoBrowser, index: Int) {
+        print("[Grid] showing photo \(index)")
+    }
+
     func didDismissAtPageIndex(_ index: Int) {
-        // Reset options after zoom browser pops
-        SKPhotoBrowserOptions.disableVerticalSwipe = false
-        SKPhotoBrowserOptions.displayCloseButton = true
+        print("[Grid] dismissed at \(index)")
     }
 }
 
