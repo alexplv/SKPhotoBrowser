@@ -22,72 +22,91 @@ struct ViewAnchor: UIViewRepresentable {
     }
 }
 
+// MARK: - Simple image loader (test app only — real app uses Kingfisher)
+
+@MainActor
+@Observable
+class ImageStore {
+    var images: [Int: UIImage] = [:]
+
+    func load(index: Int, url: URL) {
+        guard images[index] == nil else { return }
+        Task.detached {
+            guard let (data, _) = try? await URLSession.shared.data(from: url),
+                  let image = UIImage(data: data) else { return }
+            await MainActor.run { self.images[index] = image }
+        }
+    }
+}
+
 // MARK: - SwiftUI Gallery Grid
 
 struct SwiftUIGalleryDemoView: View {
     private let urls = [
-        "https://picsum.photos/id/10/1200/800",
-        "https://picsum.photos/id/20/800/1200",
-        "https://picsum.photos/id/29/1200/800",
-        "https://picsum.photos/id/37/800/1200",
-        "https://picsum.photos/id/49/1200/800",
-        "https://picsum.photos/id/57/1200/800",
+        "https://picsum.photos/id/10/600/400",
+        "https://picsum.photos/id/20/400/600",
+        "https://picsum.photos/id/29/600/400",
+        "https://picsum.photos/id/37/400/600",
+        "https://picsum.photos/id/49/600/400",
+        "https://picsum.photos/id/57/600/400",
+        "https://picsum.photos/id/65/400/600",
+        "https://picsum.photos/id/76/600/400",
+        "https://picsum.photos/id/84/400/600",
     ]
 
     @State private var anchorViews: [Int: UIView] = [:]
-    @State private var loadedImages: [Int: UIImage] = [:]
-
-    /// Bridge to present SKPhotoBrowser from SwiftUI
+    @State private var imageStore = ImageStore()
     @State private var browserPresenter = PhotoBrowserPresenter()
 
-    let columns = [
-        GridItem(.flexible(), spacing: 4),
-        GridItem(.flexible(), spacing: 4),
-        GridItem(.flexible(), spacing: 4),
+    private let columns = [
+        GridItem(.flexible(), spacing: 2),
+        GridItem(.flexible(), spacing: 2),
+        GridItem(.flexible(), spacing: 2),
     ]
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: 4) {
+            LazyVGrid(columns: columns, spacing: 2) {
                 ForEach(Array(urls.enumerated()), id: \.offset) { index, urlString in
-                    AsyncImage(url: URL(string: urlString)) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(minHeight: 120)
-                                .clipped()
-                                .onAppear {
-                                    // Cache the UIImage for displacement
-                                    if let uiImage = ImageRenderer(content: image.resizable()).uiImage {
-                                        loadedImages[index] = uiImage
-                                    }
-                                }
-                        case .failure:
-                            Color.gray.opacity(0.3)
-                                .frame(minHeight: 120)
-                        default:
-                            Color.gray.opacity(0.1)
-                                .frame(minHeight: 120)
-                        }
-                    }
-                    .frame(minHeight: 120)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay {
-                        // Anchor: invisible UIView for displacement source
-                        ViewAnchor { view in
-                            anchorViews[index] = view
-                        }
-                    }
-                    .onTapGesture {
-                        openBrowser(at: index)
-                    }
+                    thumbnailCell(index: index, urlString: urlString)
                 }
             }
-            .padding(4)
+            .padding(2)
         }
         .navigationTitle("SwiftUI → UIKit")
+    }
+
+    @ViewBuilder
+    private func thumbnailCell(index: Int, urlString: String) -> some View {
+        let image = imageStore.images[index]
+
+        ZStack {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                Color.gray.opacity(0.15)
+            }
+        }
+        .frame(minWidth: 0, maxWidth: .infinity)
+        .aspectRatio(1, contentMode: .fill)
+        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .overlay {
+            ViewAnchor { view in
+                anchorViews[index] = view
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            openBrowser(at: index)
+        }
+        .onAppear {
+            if let url = URL(string: urlString) {
+                imageStore.load(index: index, url: url)
+            }
+        }
     }
 
     private func openBrowser(at index: Int) {
@@ -97,12 +116,24 @@ struct SwiftUIGalleryDemoView: View {
         SKPhotoBrowserOptions.displayCounterLabel = true
         SKPhotoBrowserOptions.disableVerticalSwipe = false
 
-        let photos: [SKPhoto] = urls.map { SKPhoto.photoWithImageURL($0) }
+        // Use full-res URLs for the browser
+        let fullResURLs = [
+            "https://picsum.photos/id/10/1200/800",
+            "https://picsum.photos/id/20/800/1200",
+            "https://picsum.photos/id/29/1200/800",
+            "https://picsum.photos/id/37/800/1200",
+            "https://picsum.photos/id/49/1200/800",
+            "https://picsum.photos/id/57/1200/800",
+            "https://picsum.photos/id/65/800/1200",
+            "https://picsum.photos/id/76/1200/800",
+            "https://picsum.photos/id/84/800/1200",
+        ]
+        let photos: [SKPhoto] = fullResURLs.map { SKPhoto.photoWithImageURL($0) }
 
         browserPresenter.present(
             photos: photos,
             initialIndex: index,
-            originImage: loadedImages[index],
+            originImage: imageStore.images[index],
             sourceViewProvider: { [anchorViews] photoIndex in
                 anchorViews[photoIndex]
             }
@@ -133,9 +164,9 @@ class PhotoBrowserPresenter {
             browser = SKPhotoBrowser(photos: photos, initialPageIndex: initialIndex)
         }
 
-        browser.delegate = DelegateProxy(sourceViewProvider: sourceViewProvider)
-        // Keep delegate alive for the browser's lifetime
-        objc_setAssociatedObject(browser, &DelegateProxy.key, browser.delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        let proxy = DelegateProxy(sourceViewProvider: sourceViewProvider)
+        browser.delegate = proxy
+        objc_setAssociatedObject(browser, &DelegateProxy.key, proxy, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
 
         presenter.present(browser, animated: true)
     }
