@@ -72,30 +72,17 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         finalImageViewFrame = calcFinalFrame(imageRatio)
         sourceCornerRadius = sender.layer.cornerRadius
 
+        // Use visible rect as start position so the animation begins exactly
+        // where the user sees the thumbnail. The full image + .scaleAspectFill
+        // handles the zoom naturally — no manual cropping needed.
         let isPartiallyClipped = !visibleInWindow.contains(fullFrameInWindow)
-
-        if isPartiallyClipped {
-            // Start from the VISIBLE rect, not the full frame.
-            // Crop the image to match what's actually on screen.
-            senderViewOriginalFrame = visibleInWindow
-
-            let displayImage = cropImage(
-                imageFromView,
-                fullFrame: fullFrameInWindow,
-                visibleFrame: visibleInWindow
-            ) ?? imageFromView
-
-            resizableImageView = UIImageView(image: displayImage)
-        } else {
-            // Fully visible — use full frame, no cropping
-            senderViewOriginalFrame = fullFrameInWindow
-            resizableImageView = UIImageView(image: imageFromView)
-        }
+        senderViewOriginalFrame = isPartiallyClipped ? visibleInWindow : fullFrameInWindow
+        resizableImageView = UIImageView(image: imageFromView)
 
         if let resizableImageView = resizableImageView {
             resizableImageView.frame = senderViewOriginalFrame
             resizableImageView.clipsToBounds = true
-            resizableImageView.contentMode = photo.contentMode
+            resizableImageView.contentMode = .scaleAspectFill
 
             if sourceCornerRadius != 0 {
                 resizableImageView.layer.masksToBounds = true
@@ -166,25 +153,6 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
 // MARK: - Helpers
 
 private extension SKAnimator {
-    /// Crops the image to match the visible portion of the thumbnail.
-    func cropImage(_ image: UIImage, fullFrame: CGRect, visibleFrame: CGRect) -> UIImage? {
-        guard fullFrame.width > 0, fullFrame.height > 0,
-              let cgImage = image.cgImage else { return nil }
-
-        let scaleX = CGFloat(cgImage.width) / fullFrame.width
-        let scaleY = CGFloat(cgImage.height) / fullFrame.height
-
-        let cropRect = CGRect(
-            x: (visibleFrame.minX - fullFrame.minX) * scaleX,
-            y: (visibleFrame.minY - fullFrame.minY) * scaleY,
-            width: visibleFrame.width * scaleX,
-            height: visibleFrame.height * scaleY
-        )
-
-        guard let cropped = cgImage.cropping(to: cropRect) else { return nil }
-        return UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
-    }
-
     /// Returns the visible portion of the view in window coordinates,
     /// accounting for all clipping ancestors (scroll views, sheets, etc.).
     func visibleRect(of view: UIView) -> CGRect {
