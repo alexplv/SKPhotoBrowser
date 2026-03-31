@@ -1,0 +1,469 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.SKPhotoBrowser-arm64-apple-macosx26.0-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/sources",
+      "importPath" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKActionView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKAnimator.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKButtons.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKDetectingImageView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKDetectingView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKIndicatorView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKMesurement.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPaginationView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPagingScrollView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhoto.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhotoBrowser.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhotoBrowserDelegate.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhotoBrowserOptions.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKZoomingScrollView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/extensions/UIApplication+UIWindow.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/extensions/UIImage+Rotation.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/extensions/UIView+Radius.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "SKPhotoBrowser",
+      "moduleOutputPath" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/Modules/SKPhotoBrowser.swiftmodule",
+      "objects" : [
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKActionView.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKAnimator.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKButtons.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKDetectingImageView.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKDetectingView.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKIndicatorView.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKMesurement.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKPaginationView.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKPagingScrollView.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKPhoto.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKPhotoBrowser.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKPhotoBrowserDelegate.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKPhotoBrowserOptions.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKZoomingScrollView.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/UIApplication+UIWindow.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/UIImage+Rotation.swift.o",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/UIView+Radius.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx10.13",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/include/SKPhotoBrowser-Swift.h",
+        "-swift-version",
+        "5",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g"
+      ],
+      "outputFileMapPath" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKActionView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKAnimator.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKButtons.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKDetectingImageView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKDetectingView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKIndicatorView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKMesurement.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKPaginationView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKPagingScrollView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKPhoto.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKPhotoBrowser.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKPhotoBrowserDelegate.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKPhotoBrowserOptions.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/SKZoomingScrollView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/UIApplication+UIWindow.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/UIImage+Rotation.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/UIView+Radius.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/Modules/SKPhotoBrowser.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKActionView.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKAnimator.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKButtons.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKDetectingImageView.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKDetectingView.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKIndicatorView.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKMesurement.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPaginationView.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPagingScrollView.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhoto.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhotoBrowser.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhotoBrowserDelegate.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhotoBrowserOptions.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKZoomingScrollView.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/extensions/UIApplication+UIWindow.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/extensions/UIImage+Rotation.swift",
+        "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/extensions/UIView+Radius.swift"
+      ],
+      "tempsPath" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "SKPhotoBrowser" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "SKPhotoBrowser",
+      "-c",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKActionView.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKAnimator.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKButtons.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKDetectingImageView.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKDetectingView.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKIndicatorView.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKMesurement.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPaginationView.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPagingScrollView.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhoto.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhotoBrowser.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhotoBrowserDelegate.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhotoBrowserOptions.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKZoomingScrollView.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/extensions/UIApplication+UIWindow.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/extensions/UIImage+Rotation.swift",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/extensions/UIView+Radius.swift",
+      "-I",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx10.13",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/include/SKPhotoBrowser-Swift.h",
+      "-swift-version",
+      "5",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "SKPhotoBrowser" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKActionView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKAnimator.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKButtons.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKDetectingImageView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKDetectingView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKIndicatorView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKMesurement.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPaginationView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPagingScrollView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhoto.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhotoBrowser.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhotoBrowserDelegate.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKPhotoBrowserOptions.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/SKZoomingScrollView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/extensions/UIApplication+UIWindow.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/extensions/UIImage+Rotation.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/SKPhotoBrowser/extensions/UIView+Radius.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/SKPhotoBrowser.build/sources"
+    },
+    "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/oleksandr/Work/iOS/SKPhotoBrowser/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}
