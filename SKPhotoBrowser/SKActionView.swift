@@ -47,19 +47,11 @@ class SKActionView: UIView {
     }
 
     func animate(hidden: Bool) {
-        let closeFrame: CGRect = hidden ? closeButton.hideFrame : closeButton.showFrame
         let alpha: CGFloat = hidden ? 0.0 : 1.0
 
-        UIView.animate(
-            withDuration: 0.3,
-            delay: 0,
-            usingSpringWithDamping: 0.85,
-            initialSpringVelocity: 0.5,
-            options: [.curveEaseOut]
-        ) {
+        UIView.animate(withDuration: 0.2, delay: 0, options: .curveEaseOut) {
             if SKPhotoBrowserOptions.displayCloseButton {
                 self.closeButton.alpha = alpha
-                self.closeButton.frame = closeFrame
             }
         }
     }
