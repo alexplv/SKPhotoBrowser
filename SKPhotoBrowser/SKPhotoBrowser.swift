@@ -375,6 +375,10 @@ internal extension SKPhotoBrowser {
 // MARK: - Internal Function For Button Pressed, UIGesture Control
 
 internal extension SKPhotoBrowser {
+    @objc func actionButtonPressed(ignoreAndShare: Bool = false) {
+        // Override via delegate if needed
+    }
+
     @objc func panGestureRecognized(_ sender: UIPanGestureRecognizer) {
         guard let zoomingScrollView: SKZoomingScrollView = pagingScrollView.pageDisplayedAtIndex(currentPageIndex) else {
             return
