@@ -347,12 +347,12 @@ class BottomSheetGalleryViewController: UIViewController, UICollectionViewDataSo
         view.addSubview(label)
 
         let layout = UICollectionViewCompositionalLayout { _, _ in
-            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0 / 3.0),
-                                                  heightDimension: .fractionalWidth(1.0 / 3.0))
+            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0 / 2.0),
+                                                  heightDimension: .absolute(200))
             let item = NSCollectionLayoutItem(layoutSize: itemSize)
-            item.contentInsets = NSDirectionalEdgeInsets(top: 2, leading: 2, bottom: 2, trailing: 2)
+            item.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4)
             let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
-                                                   heightDimension: .fractionalWidth(1.0 / 3.0))
+                                                   heightDimension: .absolute(200))
             let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
             return NSCollectionLayoutSection(group: group)
         }
