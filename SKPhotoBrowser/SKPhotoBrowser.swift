@@ -429,7 +429,28 @@ internal extension SKPhotoBrowser {
             if zoomingScrollView.center.y > viewHalfHeight + minOffset
                 || zoomingScrollView.center.y < viewHalfHeight - minOffset {
 
-                determineAndClose()
+                // Continue the image off-screen in the drag direction, then dismiss
+                let velocityY = sender.velocity(in: view).y
+                let direction: CGFloat = translationY > 0 ? 1 : -1
+                // Ensure minimum exit speed so it never feels sluggish
+                let exitSpeed = max(abs(velocityY), 800)
+                let exitTarget = CGPoint(x: firstX, y: zoomingScrollView.center.y + direction * viewHeight)
+                // Spring velocity relative to remaining distance
+                let remaining = abs(exitTarget.y - zoomingScrollView.center.y)
+                let springVelocity = remaining > 0 ? exitSpeed / remaining : 1.0
+
+                UIView.animate(
+                    withDuration: 0.25,
+                    delay: 0,
+                    usingSpringWithDamping: 1.0,
+                    initialSpringVelocity: springVelocity
+                ) {
+                    zoomingScrollView.center = exitTarget
+                    zoomingScrollView.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
+                    self.view.backgroundColor = self.bgColor.withAlphaComponent(0)
+                } completion: { [weak self] _ in
+                    self?.determineAndClose()
+                }
 
             } else {
                 // Cancelled — spring back to center, restore scale and background
