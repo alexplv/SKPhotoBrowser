@@ -17,10 +17,10 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
     fileprivate let window = UIApplication.shared.preferredApplicationWindow
     fileprivate var resizableImageView: UIImageView?
     fileprivate var finalImageViewFrame: CGRect = .zero
-    
+
     internal lazy var backgroundView: UIView = {
         guard let window = UIApplication.shared.preferredApplicationWindow else { fatalError() }
-        
+
         let backgroundView = UIView(frame: window.frame)
         backgroundView.backgroundColor = SKPhotoBrowserOptions.backgroundColor
         backgroundView.alpha = 0.0
@@ -29,7 +29,7 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
     internal var senderOriginImage: UIImage!
     internal var senderViewOriginalFrame: CGRect = .zero
     internal var senderViewForAnimation: UIView?
-    
+
     fileprivate var animationDuration: TimeInterval {
         if SKPhotoBrowserOptions.bounceAnimation { return 0.5 }
         return 0.35
@@ -38,16 +38,23 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         if SKPhotoBrowserOptions.bounceAnimation { return 0.8 }
         return 1.0
     }
-    
+
+    // Stored per-transition so presentAnimation/dismissAnimation can apply them in sync
+    fileprivate var sourceCornerRadius: CGFloat = 0
+    fileprivate var presentMaskLayer: CAShapeLayer?
+    fileprivate var presentMaskFullPath: CGPath?
+    fileprivate var dismissMaskLayer: CAShapeLayer?
+    fileprivate var dismissMaskClippedPath: CGPath?
+
     override init() {
         super.init()
         window?.addSubview(backgroundView)
     }
-    
+
     deinit {
         backgroundView.removeFromSuperview()
     }
-    
+
     func willPresent(_ browser: SKPhotoBrowser) {
         guard let sender = browser.delegate?.viewForPhoto?(browser, index: browser.currentPageIndex) ?? senderViewForAnimation else {
             presentAnimation(browser)
@@ -69,14 +76,19 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
 
         senderViewOriginalFrame = fullFrameInWindow
         finalImageViewFrame = calcFinalFrame(imageRatio)
+        sourceCornerRadius = sender.layer.cornerRadius
         resizableImageView = UIImageView(image: imageFromView)
+
+        // Reset mask state
+        presentMaskLayer = nil
+        presentMaskFullPath = nil
 
         if let resizableImageView = resizableImageView {
             resizableImageView.frame = senderViewOriginalFrame
             resizableImageView.clipsToBounds = true
             resizableImageView.contentMode = photo.contentMode
 
-            // Mask to visible portion if partially clipped
+            // Prepare mask for partially clipped thumbnails
             let isPartiallyClipped = !visibleInWindow.contains(fullFrameInWindow)
             if isPartiallyClipped {
                 let maskRect = CGRect(
@@ -88,38 +100,27 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
                 let maskLayer = CAShapeLayer()
                 maskLayer.path = UIBezierPath(rect: maskRect).cgPath
                 resizableImageView.layer.mask = maskLayer
-
-                // Animate mask to full bounds — spring matches the frame animation
-                let fullPath = UIBezierPath(rect: CGRect(origin: .zero, size: finalImageViewFrame.size)).cgPath
-                let maskAnimation = CASpringAnimation(keyPath: "path")
-                maskAnimation.fromValue = maskLayer.path
-                maskAnimation.toValue = fullPath
-                maskAnimation.mass = 1.0
-                maskAnimation.stiffness = stiffness(forDamping: animationDamping, duration: animationDuration)
-                maskAnimation.damping = damping(forRatio: animationDamping, stiffness: maskAnimation.stiffness)
-                maskAnimation.duration = maskAnimation.settlingDuration
-                maskLayer.path = fullPath
-                maskLayer.add(maskAnimation, forKey: "maskExpand")
+                presentMaskLayer = maskLayer
+                presentMaskFullPath = UIBezierPath(rect: CGRect(origin: .zero, size: finalImageViewFrame.size)).cgPath
             }
 
-            if sender.layer.cornerRadius != 0 {
-                let duration = (animationDuration * Double(animationDamping))
+            if sourceCornerRadius != 0 {
                 resizableImageView.layer.masksToBounds = true
-                resizableImageView.addCornerRadiusAnimation(sender.layer.cornerRadius, to: 0, duration: duration)
+                resizableImageView.layer.cornerRadius = sourceCornerRadius
             }
+
             window?.addSubview(resizableImageView)
         }
 
         presentAnimation(browser)
     }
-    
+
     func willDismiss(_ browser: SKPhotoBrowser) {
         guard let sender = browser.delegate?.viewForPhoto?(browser, index: browser.currentPageIndex),
             let image = browser.photoAtIndex(browser.currentPageIndex).underlyingImage,
             let scrollView = browser.pageDisplayedAtIndex(browser.currentPageIndex) else {
 
             senderViewForAnimation?.isHidden = false
-            // No source view — dismiss instantly, pan animation already handled the visual exit
             self.resizableImageView?.removeFromSuperview()
             self.backgroundView.removeFromSuperview()
             browser.dismissPhotoBrowser(animated: false)
@@ -132,10 +133,14 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         backgroundView.alpha = 1.0
         backgroundView.backgroundColor = .clear
         senderViewOriginalFrame = calcOriginFrame(sender)
-        
-        // Calculate visible rect of target thumbnail for masking
+        sourceCornerRadius = sender.layer.cornerRadius
+
         let targetFullFrame = senderViewOriginalFrame
         let targetVisible = visibleRect(of: sender)
+
+        // Reset mask state
+        dismissMaskLayer = nil
+        dismissMaskClippedPath = nil
 
         if let resizableImageView = resizableImageView {
             let photo = browser.photoAtIndex(browser.currentPageIndex)
@@ -153,8 +158,9 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
             resizableImageView.alpha = 1.0
             resizableImageView.clipsToBounds = true
             resizableImageView.contentMode = photo.contentMode
+            resizableImageView.layer.cornerRadius = 0
 
-            // Animate mask from full to visible portion if target is partially clipped
+            // Prepare mask for partially clipped target
             let isTargetClipped = !targetVisible.isEmpty && !targetVisible.contains(targetFullFrame)
             if isTargetClipped {
                 let fullPath = UIBezierPath(rect: CGRect(origin: .zero, size: frame.size)).cgPath
@@ -164,27 +170,11 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
                     width: targetVisible.width,
                     height: targetVisible.height
                 )
-                let clippedPath = UIBezierPath(rect: clippedRect).cgPath
-
                 let maskLayer = CAShapeLayer()
                 maskLayer.path = fullPath
                 resizableImageView.layer.mask = maskLayer
-
-                let maskAnimation = CASpringAnimation(keyPath: "path")
-                maskAnimation.fromValue = fullPath
-                maskAnimation.toValue = clippedPath
-                maskAnimation.mass = 1.0
-                maskAnimation.stiffness = stiffness(forDamping: animationDamping, duration: animationDuration)
-                maskAnimation.damping = damping(forRatio: animationDamping, stiffness: maskAnimation.stiffness)
-                maskAnimation.duration = maskAnimation.settlingDuration
-                maskLayer.path = clippedPath
-                maskLayer.add(maskAnimation, forKey: "maskShrink")
-            }
-
-            if let view = senderViewForAnimation, view.layer.cornerRadius != 0 {
-                let duration = (animationDuration * Double(animationDamping))
-                resizableImageView.layer.masksToBounds = true
-                resizableImageView.addCornerRadiusAnimation(0, to: view.layer.cornerRadius, duration: duration)
+                dismissMaskLayer = maskLayer
+                dismissMaskClippedPath = UIBezierPath(rect: clippedRect).cgPath
             }
         }
         dismissAnimation(browser)
@@ -192,21 +182,6 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
 }
 
 private extension SKAnimator {
-    // MARK: - Spring parameter conversion
-    // UIView.animate uses dampingRatio + duration, CASpringAnimation uses mass + stiffness + damping.
-    // These convert between the two so the mask animation matches the frame animation exactly.
-
-    func stiffness(forDamping dampingRatio: CGFloat, duration: TimeInterval) -> CGFloat {
-        let mass: CGFloat = 1.0
-        let omega = 2.0 * .pi / CGFloat(duration) // natural frequency
-        return mass * omega * omega
-    }
-
-    func damping(forRatio ratio: CGFloat, stiffness: CGFloat) -> CGFloat {
-        let mass: CGFloat = 1.0
-        return ratio * 2.0 * sqrt(mass * stiffness)
-    }
-
     /// Returns the visible portion of the view in window coordinates,
     /// accounting for all clipping ancestors (scroll views, sheets, etc.).
     func visibleRect(of view: UIView) -> CGRect {
@@ -233,10 +208,10 @@ private extension SKAnimator {
             return .zero
         }
     }
-    
+
     func calcFinalFrame(_ imageRatio: CGFloat) -> CGRect {
         guard !imageRatio.isNaN else { return .zero }
-        
+
         if SKMesurement.screenRatio < imageRatio {
             let width = SKMesurement.screenWidth
             let height = width / imageRatio
@@ -261,9 +236,33 @@ private extension SKAnimator {
         resizableImageView?.accessibilityIgnoresInvertColors = true
 
         if hasSourceView {
-            // Displacement animation — browser hidden until source image reaches final position
             browser.view.isHidden = true
             browser.view.alpha = 0.0
+
+            // Fire mask + cornerRadius in the same CATransaction as UIView.animate
+            // so they share the exact same timing
+            CATransaction.begin()
+            CATransaction.setAnimationDuration(animationDuration)
+
+            if let maskLayer = presentMaskLayer, let fullPath = presentMaskFullPath {
+                let anim = CABasicAnimation(keyPath: "path")
+                anim.fromValue = maskLayer.path
+                anim.toValue = fullPath
+                anim.duration = animationDuration
+                maskLayer.path = fullPath
+                maskLayer.add(anim, forKey: "maskExpand")
+            }
+
+            if sourceCornerRadius != 0, let iv = resizableImageView {
+                let anim = CABasicAnimation(keyPath: "cornerRadius")
+                anim.fromValue = sourceCornerRadius
+                anim.toValue = 0
+                anim.duration = animationDuration
+                iv.layer.cornerRadius = 0
+                iv.layer.add(anim, forKey: "cornerRadius")
+            }
+
+            CATransaction.commit()
 
             UIView.animate(
                 withDuration: animationDuration,
@@ -274,6 +273,7 @@ private extension SKAnimator {
                 self.backgroundView.alpha = 1.0
                 self.resizableImageView?.frame = finalFrame
             } completion: { _ in
+                self.resizableImageView?.layer.mask = nil
                 browser.view.alpha = 1.0
                 browser.view.isHidden = false
                 self.backgroundView.isHidden = true
@@ -281,7 +281,6 @@ private extension SKAnimator {
                 browser.showButtons()
             }
         } else {
-            // No source view — fade in browser directly, skip window-level backgroundView
             self.backgroundView.isHidden = true
             browser.view.isHidden = false
             browser.view.alpha = 0.0
@@ -289,16 +288,39 @@ private extension SKAnimator {
             UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut) {
                 browser.view.alpha = 1.0
             } completion: { _ in
-                // Delay controls slightly so the gallery content settles first
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                     browser.showButtons()
                 }
             }
         }
     }
-    
+
     func dismissAnimation(_ browser: SKPhotoBrowser, completion: (() -> Void)? = nil) {
         let finalFrame = self.senderViewOriginalFrame
+
+        // Fire mask + cornerRadius in the same CATransaction as UIView.animate
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(animationDuration)
+
+        if let maskLayer = dismissMaskLayer, let clippedPath = dismissMaskClippedPath {
+            let anim = CABasicAnimation(keyPath: "path")
+            anim.fromValue = maskLayer.path
+            anim.toValue = clippedPath
+            anim.duration = animationDuration
+            maskLayer.path = clippedPath
+            maskLayer.add(anim, forKey: "maskShrink")
+        }
+
+        if sourceCornerRadius != 0, let iv = resizableImageView {
+            let anim = CABasicAnimation(keyPath: "cornerRadius")
+            anim.fromValue = 0
+            anim.toValue = sourceCornerRadius
+            anim.duration = animationDuration
+            iv.layer.cornerRadius = sourceCornerRadius
+            iv.layer.add(anim, forKey: "cornerRadius")
+        }
+
+        CATransaction.commit()
 
         UIView.animate(
             withDuration: animationDuration,
@@ -318,4 +340,3 @@ private extension SKAnimator {
             })
     }
 }
-
