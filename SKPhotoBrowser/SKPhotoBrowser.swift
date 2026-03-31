@@ -205,12 +205,23 @@ open class SKPhotoBrowser: UIViewController {
 
     open func dismissPhotoBrowser(animated: Bool, completion: (() -> Void)? = nil) {
         prepareForClosePhotoBrowser()
-        if !animated {
-            modalTransitionStyle = .crossDissolve
-        }
-        dismiss(animated: !animated) {
+
+        let onDismissed = {
             completion?()
             self.delegate?.didDismissAtPageIndex?(self.currentPageIndex)
+        }
+
+        // If pushed onto a nav stack, pop instead of dismiss
+        if let nav = navigationController, nav.viewControllers.contains(self) {
+            nav.popViewController(animated: animated)
+            onDismissed()
+        } else {
+            if !animated {
+                modalTransitionStyle = .crossDissolve
+            }
+            dismiss(animated: !animated) {
+                onDismissed()
+            }
         }
     }
 
@@ -416,21 +427,20 @@ internal extension SKPhotoBrowser {
                 determineAndClose()
 
             } else {
-                // Continue Showing View
+                // Cancelled — restore view and show controls again
                 setNeedsStatusBarAppearanceUpdate()
                 view.backgroundColor = bgColor
 
-                let velocityY: CGFloat = CGFloat(0.35) * sender.velocity(in: self.view).y
                 let finalX: CGFloat = firstX
                 let finalY: CGFloat = viewHalfHeight
+                let velocityY = abs(sender.velocity(in: self.view).y)
+                let animationDuration = Double(velocityY * 0.0002 + 0.2)
 
-                let animationDuration: Double = Double(abs(velocityY) * 0.0002 + 0.2)
-
-                UIView.beginAnimations(nil, context: nil)
-                UIView.setAnimationDuration(animationDuration)
-                UIView.setAnimationCurve(UIView.AnimationCurve.easeIn)
-                zoomingScrollView.center = CGPoint(x: finalX, y: finalY)
-                UIView.commitAnimations()
+                UIView.animate(withDuration: animationDuration, delay: 0, options: .curveEaseIn) {
+                    zoomingScrollView.center = CGPoint(x: finalX, y: finalY)
+                } completion: { [weak self] _ in
+                    self?.setControlsHidden(false, animated: true, permanent: false)
+                }
             }
         }
     }
