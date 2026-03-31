@@ -57,6 +57,7 @@ struct SwiftUIGalleryDemoView: View {
     @State private var anchorViews: [Int: UIView] = [:]
     @State private var imageStore = ImageStore()
     @State private var browserPresenter = PhotoBrowserPresenter()
+    @State private var hiddenIndex: Int?
 
     private let columns = [
         GridItem(.flexible(), spacing: 2),
@@ -93,6 +94,7 @@ struct SwiftUIGalleryDemoView: View {
             }
             .clipped()
             .clipShape(RoundedRectangle(cornerRadius: 4))
+            .opacity(hiddenIndex == index ? 0 : 1)
             .overlay {
                 ViewAnchor { view in
                     anchorViews[index] = view
@@ -130,12 +132,17 @@ struct SwiftUIGalleryDemoView: View {
         ]
         let photos: [SKPhoto] = fullResURLs.map { SKPhoto.photoWithImageURL($0) }
 
+        hiddenIndex = index
+
         browserPresenter.present(
             photos: photos,
             initialIndex: index,
             originImage: imageStore.images[index],
             sourceViewProvider: { [anchorViews] photoIndex in
                 anchorViews[photoIndex]
+            },
+            onDismiss: { [self] in
+                hiddenIndex = nil
             }
         )
     }
@@ -149,7 +156,8 @@ class PhotoBrowserPresenter {
         photos: [SKPhoto],
         initialIndex: Int,
         originImage: UIImage?,
-        sourceViewProvider: @escaping (Int) -> UIView?
+        sourceViewProvider: @escaping (Int) -> UIView?,
+        onDismiss: @escaping () -> Void = {}
     ) {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootVC = windowScene.windows.first?.rootViewController else { return }
@@ -164,7 +172,7 @@ class PhotoBrowserPresenter {
             browser = SKPhotoBrowser(photos: photos, initialPageIndex: initialIndex)
         }
 
-        let proxy = DelegateProxy(sourceViewProvider: sourceViewProvider)
+        let proxy = DelegateProxy(sourceViewProvider: sourceViewProvider, onDismiss: onDismiss)
         browser.delegate = proxy
         objc_setAssociatedObject(browser, &DelegateProxy.key, proxy, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
 
@@ -185,9 +193,11 @@ private extension UIViewController {
 private class DelegateProxy: NSObject, SKPhotoBrowserDelegate {
     static var key: UInt8 = 0
     let sourceViewProvider: (Int) -> UIView?
+    let onDismiss: () -> Void
 
-    init(sourceViewProvider: @escaping (Int) -> UIView?) {
+    init(sourceViewProvider: @escaping (Int) -> UIView?, onDismiss: @escaping () -> Void) {
         self.sourceViewProvider = sourceViewProvider
+        self.onDismiss = onDismiss
     }
 
     func viewForPhoto(_ browser: SKPhotoBrowser, index: Int) -> UIView? {
@@ -196,6 +206,7 @@ private class DelegateProxy: NSObject, SKPhotoBrowserDelegate {
 
     func didDismissAtPageIndex(_ index: Int) {
         print("[SwiftUI] dismissed at \(index)")
+        onDismiss()
     }
 }
 
