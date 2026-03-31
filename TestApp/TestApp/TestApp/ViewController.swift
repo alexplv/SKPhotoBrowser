@@ -32,6 +32,7 @@ private enum Demo: CaseIterable {
     case thumbnailGrid
     case displacementTransition
     case swiftUIDisplacement
+    case bottomSheetClipping
 
     var title: String {
         switch self {
@@ -45,6 +46,7 @@ private enum Demo: CaseIterable {
         case .thumbnailGrid:            return "Thumbnail Grid (fade transition)"
         case .displacementTransition:   return "Displacement Transition (UIKit)"
         case .swiftUIDisplacement:      return "SwiftUI → UIKit Displacement"
+        case .bottomSheetClipping:      return "Bottom Sheet (clipped thumbnails)"
         }
     }
 
@@ -60,6 +62,7 @@ private enum Demo: CaseIterable {
         case .thumbnailGrid:            return "Grid → modal, no source view"
         case .displacementTransition:   return "Grid → modal, zooms from UIKit thumbnail"
         case .swiftUIDisplacement:      return "SwiftUI grid + ViewAnchor bridge"
+        case .bottomSheetClipping:      return "Tests visible-rect masking at sheet edge"
         }
     }
 }
@@ -153,11 +156,30 @@ class DemoListViewController: UITableViewController {
             let vc = SwiftUIGalleryDemoHostingController()
             navigationController?.pushViewController(vc, animated: true)
             return
+
+        case .bottomSheetClipping:
+            presentBottomSheetDemo()
+            return
         }
 
         let browser = SKPhotoBrowser(photos: photos, initialPageIndex: startIndex)
         browser.delegate = self
         present(browser, animated: true)
+    }
+
+    private func presentBottomSheetDemo() {
+        let sheetVC = BottomSheetGalleryViewController()
+        sheetVC.modalPresentationStyle = .pageSheet
+        if let sheet = sheetVC.sheetPresentationController {
+            let smallDetent = UISheetPresentationController.Detent.custom { context in
+                context.maximumDetentValue * 0.4
+            }
+            sheet.detents = [smallDetent, .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 20
+            sheet.selectedDetentIdentifier = smallDetent.identifier
+        }
+        present(sheetVC, animated: true)
     }
 
     // MARK: - Helpers
@@ -302,6 +324,100 @@ extension ThumbnailGridViewController: SKPhotoBrowserDelegate {
         guard useDisplacement else { return nil }
         let ip = IndexPath(item: index, section: 0)
         return (collectionView.cellForItem(at: ip) as? ThumbnailCell)?.imageView
+    }
+}
+
+// MARK: - Bottom Sheet Gallery (tests visible-rect clipping)
+
+class BottomSheetGalleryViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate {
+
+    private var collectionView: UICollectionView!
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+
+        let label = UILabel()
+        label.text = "Scroll down — bottom thumbnails are clipped by the sheet edge"
+        label.font = .systemFont(ofSize: 14)
+        label.textColor = .secondaryLabel
+        label.numberOfLines = 0
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
+
+        let layout = UICollectionViewCompositionalLayout { _, _ in
+            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0 / 3.0),
+                                                  heightDimension: .fractionalWidth(1.0 / 3.0))
+            let item = NSCollectionLayoutItem(layoutSize: itemSize)
+            item.contentInsets = NSDirectionalEdgeInsets(top: 2, leading: 2, bottom: 2, trailing: 2)
+            let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
+                                                   heightDimension: .fractionalWidth(1.0 / 3.0))
+            let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+            return NSCollectionLayoutSection(group: group)
+        }
+
+        collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        collectionView.register(ThumbnailCell.self, forCellWithReuseIdentifier: ThumbnailCell.reuseID)
+        collectionView.dataSource = self
+        collectionView.delegate = self
+        collectionView.clipsToBounds = true
+        view.addSubview(collectionView)
+
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            collectionView.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 12),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+    }
+
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        sampleURLs.count
+    }
+
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ThumbnailCell.reuseID, for: indexPath) as! ThumbnailCell
+        cell.loadImage(from: sampleURLs[indexPath.item])
+        cell.imageView.layer.cornerRadius = 12
+        return cell
+    }
+
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard let cell = collectionView.cellForItem(at: indexPath) as? ThumbnailCell,
+              let thumb = cell.imageView.image else { return }
+
+        SKPhotoBrowserOptions.displayCloseButton = true
+        SKPhotoBrowserOptions.displayAction = false
+        SKPhotoBrowserOptions.displayBackAndForwardButton = false
+        SKPhotoBrowserOptions.displayCounterLabel = true
+
+        let photos: [SKPhoto] = sampleURLs.map { SKPhoto.photoWithImageURL($0) }
+        let browser = SKPhotoBrowser(originImage: thumb, photos: photos, animatedFromView: cell.imageView)
+        browser.initializePageIndex(indexPath.item)
+        browser.delegate = self
+
+        // Present from the window root so gallery covers everything
+        if let rootVC = view.window?.rootViewController {
+            var presenter: UIViewController = rootVC
+            while let p = presenter.presentedViewController { presenter = p }
+            presenter.present(browser, animated: true)
+        }
+    }
+}
+
+extension BottomSheetGalleryViewController: SKPhotoBrowserDelegate {
+    func viewForPhoto(_ browser: SKPhotoBrowser, index: Int) -> UIView? {
+        let ip = IndexPath(item: index, section: 0)
+        return (collectionView.cellForItem(at: ip) as? ThumbnailCell)?.imageView
+    }
+
+    func didDismissAtPageIndex(_ index: Int) {
+        print("[Sheet] dismissed at \(index)")
     }
 }
 
