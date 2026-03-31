@@ -433,26 +433,35 @@ internal extension SKPhotoBrowser {
                 || zoomingScrollView.center.y < viewHalfHeight - dismissThreshold
 
             if isDismissing {
-                // Momentum exit — continue off-screen, then dismiss
-                let velocityY = sender.velocity(in: view).y
-                let direction: CGFloat = translationY > 0 ? 1 : -1
-                let exitSpeed = max(abs(velocityY), 600)
-                let exitTarget = CGPoint(x: firstX, y: zoomingScrollView.center.y + direction * viewHeight)
-                let remaining = abs(exitTarget.y - zoomingScrollView.center.y)
-                let springVelocity = remaining > 0 ? exitSpeed / remaining : 1.0
+                // Check if displacement source exists
+                let hasSourceView = delegate?.viewForPhoto?(self, index: currentPageIndex) != nil
 
-                UIView.animate(
-                    withDuration: 0.35,
-                    delay: 0,
-                    usingSpringWithDamping: 1.0,
-                    initialSpringVelocity: springVelocity,
-                    options: .curveEaseOut
-                ) {
-                    zoomingScrollView.center = exitTarget
-                    zoomingScrollView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
-                    self.view.backgroundColor = self.bgColor.withAlphaComponent(0)
-                } completion: { [weak self] _ in
-                    self?.determineAndClose()
+                if hasSourceView {
+                    // Displacement — go directly to source, no momentum exit
+                    zoomingScrollView.transform = .identity
+                    determineAndClose()
+                } else {
+                    // No source — momentum exit off-screen, then dismiss
+                    let velocityY = sender.velocity(in: view).y
+                    let direction: CGFloat = translationY > 0 ? 1 : -1
+                    let exitSpeed = max(abs(velocityY), 600)
+                    let exitTarget = CGPoint(x: firstX, y: zoomingScrollView.center.y + direction * viewHeight)
+                    let remaining = abs(exitTarget.y - zoomingScrollView.center.y)
+                    let springVelocity = remaining > 0 ? exitSpeed / remaining : 1.0
+
+                    UIView.animate(
+                        withDuration: 0.35,
+                        delay: 0,
+                        usingSpringWithDamping: 1.0,
+                        initialSpringVelocity: springVelocity,
+                        options: .curveEaseOut
+                    ) {
+                        zoomingScrollView.center = exitTarget
+                        zoomingScrollView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
+                        self.view.backgroundColor = self.bgColor.withAlphaComponent(0)
+                    } completion: { [weak self] _ in
+                        self?.determineAndClose()
+                    }
                 }
 
             } else {
