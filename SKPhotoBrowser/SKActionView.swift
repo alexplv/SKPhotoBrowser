@@ -48,15 +48,20 @@ class SKActionView: UIView {
 
     func animate(hidden: Bool) {
         let closeFrame: CGRect = hidden ? closeButton.hideFrame : closeButton.showFrame
-        UIView.animate(withDuration: 0.35,
-                       animations: { () -> Void in
-                        let alpha: CGFloat = hidden ? 0.0 : 1.0
+        let alpha: CGFloat = hidden ? 0.0 : 1.0
 
-                        if SKPhotoBrowserOptions.displayCloseButton {
-                            self.closeButton.alpha = alpha
-                            self.closeButton.frame = closeFrame
-                        }
-        }, completion: nil)
+        UIView.animate(
+            withDuration: 0.3,
+            delay: 0,
+            usingSpringWithDamping: 0.85,
+            initialSpringVelocity: 0.5,
+            options: [.curveEaseOut]
+        ) {
+            if SKPhotoBrowserOptions.displayCloseButton {
+                self.closeButton.alpha = alpha
+                self.closeButton.frame = closeFrame
+            }
+        }
     }
 
     @objc func closeButtonPressed(_ sender: UIButton) {

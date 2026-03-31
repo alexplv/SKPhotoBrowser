@@ -61,9 +61,13 @@ class SKPaginationView: UIView {
     func setControlsHidden(hidden: Bool) {
         let alpha: CGFloat = hidden ? 0.0 : 1.0
 
-        UIView.animate(withDuration: 0.35,
-                       animations: { () -> Void in self.alpha = alpha },
-                       completion: nil)
+        UIView.animate(
+            withDuration: 0.25,
+            delay: 0,
+            options: .curveEaseOut
+        ) {
+            self.alpha = alpha
+        }
     }
 }
 

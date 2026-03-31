@@ -398,26 +398,31 @@ internal extension SKPhotoBrowser {
         animator.backgroundView.isHidden = true
         let viewHeight: CGFloat = zoomingScrollView.frame.size.height
         let viewHalfHeight: CGFloat = viewHeight / 2
-        var translatedPoint: CGPoint = sender.translation(in: self.view)
 
         // gesture began
         if sender.state == .began {
             firstX = zoomingScrollView.center.x
             firstY = zoomingScrollView.center.y
-
             hideControls()
             setNeedsStatusBarAppearanceUpdate()
         }
 
-        translatedPoint = CGPoint(x: firstX, y: firstY + translatedPoint.y)
+        let translationY = sender.translation(in: view).y
+        let translatedPoint = CGPoint(x: firstX, y: firstY + translationY)
         zoomingScrollView.center = translatedPoint
 
-        let minOffset: CGFloat = viewHalfHeight / 4
-        let offset: CGFloat = 1 - (zoomingScrollView.center.y > viewHalfHeight
-            ? zoomingScrollView.center.y - viewHalfHeight
-            : -(zoomingScrollView.center.y - viewHalfHeight)) / viewHalfHeight
+        // Progress: 0 = centered, 1 = fully dragged away
+        let dragDistance = abs(translationY)
+        let progress = min(dragDistance / viewHalfHeight, 1.0)
 
-        view.backgroundColor = bgColor.withAlphaComponent(max(0.7, offset))
+        // Scale down proportionally as the image is dragged (like Apple Photos)
+        let scale = 1.0 - progress * 0.25 // shrinks to 0.75 at max drag
+        zoomingScrollView.transform = CGAffineTransform(scaleX: scale, y: scale)
+
+        // Fade background
+        view.backgroundColor = bgColor.withAlphaComponent(1.0 - progress * 0.5)
+
+        let minOffset: CGFloat = viewHalfHeight / 4
 
         // gesture end
         if sender.state == .ended {
@@ -427,17 +432,16 @@ internal extension SKPhotoBrowser {
                 determineAndClose()
 
             } else {
-                // Cancelled — restore view and show controls again
-                setNeedsStatusBarAppearanceUpdate()
-                view.backgroundColor = bgColor
-
-                let finalX: CGFloat = firstX
-                let finalY: CGFloat = viewHalfHeight
-                let velocityY = abs(sender.velocity(in: self.view).y)
-                let animationDuration = Double(velocityY * 0.0002 + 0.2)
-
-                UIView.animate(withDuration: animationDuration, delay: 0, options: .curveEaseIn) {
-                    zoomingScrollView.center = CGPoint(x: finalX, y: finalY)
+                // Cancelled — spring back to center, restore scale and background
+                UIView.animate(
+                    withDuration: 0.4,
+                    delay: 0,
+                    usingSpringWithDamping: 0.85,
+                    initialSpringVelocity: 0.3
+                ) {
+                    zoomingScrollView.center = CGPoint(x: self.firstX, y: viewHalfHeight)
+                    zoomingScrollView.transform = .identity
+                    self.view.backgroundColor = self.bgColor
                 } completion: { [weak self] _ in
                     self?.setControlsHidden(false, animated: true, permanent: false)
                 }
