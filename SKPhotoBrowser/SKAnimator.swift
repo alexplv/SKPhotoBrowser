@@ -41,10 +41,10 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
 
     // Stored per-transition so presentAnimation/dismissAnimation can apply them in sync
     fileprivate var sourceCornerRadius: CGFloat = 0
-    fileprivate var presentMaskLayer: CAShapeLayer?
-    fileprivate var presentMaskFullPath: CGPath?
-    fileprivate var dismissMaskLayer: CAShapeLayer?
-    fileprivate var dismissMaskClippedPath: CGPath?
+    fileprivate var presentMaskLayer: CALayer?
+    fileprivate var presentMaskTargetFrame: CGRect = .zero
+    fileprivate var dismissMaskLayer: CALayer?
+    fileprivate var dismissMaskTargetFrame: CGRect = .zero
 
     override init() {
         super.init()
@@ -81,14 +81,15 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
 
         // Reset mask state
         presentMaskLayer = nil
-        presentMaskFullPath = nil
 
         if let resizableImageView = resizableImageView {
             resizableImageView.frame = senderViewOriginalFrame
             resizableImageView.clipsToBounds = true
             resizableImageView.contentMode = photo.contentMode
 
-            // Prepare mask for partially clipped thumbnails
+            // Prepare mask for partially clipped thumbnails.
+            // Uses a plain CALayer (not CAShapeLayer) so its frame can be animated
+            // implicitly inside UIView.animate, synced with the image frame spring.
             let isPartiallyClipped = !visibleInWindow.contains(fullFrameInWindow)
             if isPartiallyClipped {
                 let maskRect = CGRect(
@@ -97,11 +98,12 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
                     width: visibleInWindow.width,
                     height: visibleInWindow.height
                 )
-                let maskLayer = CAShapeLayer()
-                maskLayer.path = UIBezierPath(rect: maskRect).cgPath
+                let maskLayer = CALayer()
+                maskLayer.backgroundColor = UIColor.white.cgColor
+                maskLayer.frame = maskRect
                 resizableImageView.layer.mask = maskLayer
                 presentMaskLayer = maskLayer
-                presentMaskFullPath = UIBezierPath(rect: CGRect(origin: .zero, size: finalImageViewFrame.size)).cgPath
+                presentMaskTargetFrame = CGRect(origin: .zero, size: finalImageViewFrame.size)
             }
 
             if sourceCornerRadius != 0 {
@@ -140,7 +142,6 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
 
         // Reset mask state
         dismissMaskLayer = nil
-        dismissMaskClippedPath = nil
 
         if let resizableImageView = resizableImageView {
             let photo = browser.photoAtIndex(browser.currentPageIndex)
@@ -163,18 +164,18 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
             // Prepare mask for partially clipped target
             let isTargetClipped = !targetVisible.isEmpty && !targetVisible.contains(targetFullFrame)
             if isTargetClipped {
-                let fullPath = UIBezierPath(rect: CGRect(origin: .zero, size: frame.size)).cgPath
                 let clippedRect = CGRect(
                     x: targetVisible.minX - targetFullFrame.minX,
                     y: targetVisible.minY - targetFullFrame.minY,
                     width: targetVisible.width,
                     height: targetVisible.height
                 )
-                let maskLayer = CAShapeLayer()
-                maskLayer.path = fullPath
+                let maskLayer = CALayer()
+                maskLayer.backgroundColor = UIColor.white.cgColor
+                maskLayer.frame = CGRect(origin: .zero, size: frame.size)
                 resizableImageView.layer.mask = maskLayer
                 dismissMaskLayer = maskLayer
-                dismissMaskClippedPath = UIBezierPath(rect: clippedRect).cgPath
+                dismissMaskTargetFrame = clippedRect
             }
         }
         dismissAnimation(browser)
@@ -239,31 +240,6 @@ private extension SKAnimator {
             browser.view.isHidden = true
             browser.view.alpha = 0.0
 
-            // Fire mask + cornerRadius in the same CATransaction as UIView.animate
-            // so they share the exact same timing
-            CATransaction.begin()
-            CATransaction.setAnimationDuration(animationDuration)
-
-            if let maskLayer = presentMaskLayer, let fullPath = presentMaskFullPath {
-                let anim = CABasicAnimation(keyPath: "path")
-                anim.fromValue = maskLayer.path
-                anim.toValue = fullPath
-                anim.duration = animationDuration
-                maskLayer.path = fullPath
-                maskLayer.add(anim, forKey: "maskExpand")
-            }
-
-            if sourceCornerRadius != 0, let iv = resizableImageView {
-                let anim = CABasicAnimation(keyPath: "cornerRadius")
-                anim.fromValue = sourceCornerRadius
-                anim.toValue = 0
-                anim.duration = animationDuration
-                iv.layer.cornerRadius = 0
-                iv.layer.add(anim, forKey: "cornerRadius")
-            }
-
-            CATransaction.commit()
-
             UIView.animate(
                 withDuration: animationDuration,
                 delay: 0,
@@ -272,8 +248,14 @@ private extension SKAnimator {
             ) {
                 self.backgroundView.alpha = 1.0
                 self.resizableImageView?.frame = finalFrame
+
+                // These run inside the UIView.animate block so they inherit
+                // the same spring timing as the frame animation.
+                self.resizableImageView?.layer.cornerRadius = 0
+                self.presentMaskLayer?.frame = self.presentMaskTargetFrame
             } completion: { _ in
                 self.resizableImageView?.layer.mask = nil
+                self.presentMaskLayer = nil
                 browser.view.alpha = 1.0
                 browser.view.isHidden = false
                 self.backgroundView.isHidden = true
@@ -298,45 +280,24 @@ private extension SKAnimator {
     func dismissAnimation(_ browser: SKPhotoBrowser, completion: (() -> Void)? = nil) {
         let finalFrame = self.senderViewOriginalFrame
 
-        // Fire mask + cornerRadius in the same CATransaction as UIView.animate
-        CATransaction.begin()
-        CATransaction.setAnimationDuration(animationDuration)
-
-        if let maskLayer = dismissMaskLayer, let clippedPath = dismissMaskClippedPath {
-            let anim = CABasicAnimation(keyPath: "path")
-            anim.fromValue = maskLayer.path
-            anim.toValue = clippedPath
-            anim.duration = animationDuration
-            maskLayer.path = clippedPath
-            maskLayer.add(anim, forKey: "maskShrink")
-        }
-
-        if sourceCornerRadius != 0, let iv = resizableImageView {
-            let anim = CABasicAnimation(keyPath: "cornerRadius")
-            anim.fromValue = 0
-            anim.toValue = sourceCornerRadius
-            anim.duration = animationDuration
-            iv.layer.cornerRadius = sourceCornerRadius
-            iv.layer.add(anim, forKey: "cornerRadius")
-        }
-
-        CATransaction.commit()
-
         UIView.animate(
             withDuration: animationDuration,
             delay: 0,
             usingSpringWithDamping: animationDamping,
-            initialSpringVelocity: 0,
-            options: UIView.AnimationOptions(),
-            animations: {
-                self.backgroundView.alpha = 0.0
-                self.resizableImageView?.layer.frame = finalFrame
-            },
-            completion: { (_) -> Void in
-                browser.dismissPhotoBrowser(animated: false) {
-                    self.resizableImageView?.removeFromSuperview()
-                    self.backgroundView.removeFromSuperview()
-                }
-            })
+            initialSpringVelocity: 0
+        ) {
+            self.backgroundView.alpha = 0.0
+            self.resizableImageView?.layer.frame = finalFrame
+
+            // Same spring timing as the frame
+            self.resizableImageView?.layer.cornerRadius = self.sourceCornerRadius
+            self.dismissMaskLayer?.frame = self.dismissMaskTargetFrame
+        } completion: { _ in
+            self.dismissMaskLayer = nil
+            browser.dismissPhotoBrowser(animated: false) {
+                self.resizableImageView?.removeFromSuperview()
+                self.backgroundView.removeFromSuperview()
+            }
+        }
     }
 }
