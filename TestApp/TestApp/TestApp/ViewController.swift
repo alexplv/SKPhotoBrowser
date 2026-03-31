@@ -31,6 +31,7 @@ private enum Demo: CaseIterable {
     case customBackground
     case thumbnailGrid
     case displacementTransition
+    case swiftUIDisplacement
 
     var title: String {
         switch self {
@@ -42,7 +43,8 @@ private enum Demo: CaseIterable {
         case .counterHidden:            return "Counter Hidden"
         case .customBackground:         return "Custom Background (dark gray)"
         case .thumbnailGrid:            return "Thumbnail Grid (fade transition)"
-        case .displacementTransition:   return "Displacement Transition"
+        case .displacementTransition:   return "Displacement Transition (UIKit)"
+        case .swiftUIDisplacement:      return "SwiftUI → UIKit Displacement"
         }
     }
 
@@ -56,7 +58,8 @@ private enum Demo: CaseIterable {
         case .counterHidden:            return "displayCounterLabel = false"
         case .customBackground:         return "backgroundColor = .darkGray"
         case .thumbnailGrid:            return "Grid → modal, no source view"
-        case .displacementTransition:   return "Grid → modal, zooms from thumbnail"
+        case .displacementTransition:   return "Grid → modal, zooms from UIKit thumbnail"
+        case .swiftUIDisplacement:      return "SwiftUI grid + ViewAnchor bridge"
         }
     }
 }
@@ -144,6 +147,11 @@ class DemoListViewController: UITableViewController {
         case .displacementTransition:
             let gridVC = ThumbnailGridViewController(useDisplacement: true)
             navigationController?.pushViewController(gridVC, animated: true)
+            return
+
+        case .swiftUIDisplacement:
+            let vc = SwiftUIGalleryDemoHostingController()
+            navigationController?.pushViewController(vc, animated: true)
             return
         }
 
