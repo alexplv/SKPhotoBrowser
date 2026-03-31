@@ -55,4 +55,13 @@ import UIKit
      - Parameter hidden: the status of visibility control
      */
     @objc optional func controlsVisibilityToggled(_ browser: SKPhotoBrowser, hidden: Bool)
+
+    /**
+     Asks the delegate for a custom caption view for a photo at a given index.
+
+     - Parameter index: the index of the photo
+
+     - Returns: a custom SKCaptionView, or nil to use the default
+     */
+    @objc optional func captionViewForPhotoAtIndex(index: Int) -> SKCaptionView?
 }

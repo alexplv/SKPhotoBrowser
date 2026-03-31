@@ -32,7 +32,7 @@ class SKPagingScrollView: UIScrollView {
         self.browser = browser
 
         isPagingEnabled = true
-        showsHorizontalScrollIndicator = false
+        showsHorizontalScrollIndicator = SKPhotoBrowserOptions.displayPagingHorizontalScrollIndicator
         showsVerticalScrollIndicator = false
 
         updateFrame(bounds, currentPageIndex: browser.currentPageIndex)
@@ -84,6 +84,9 @@ class SKPagingScrollView: UIScrollView {
                 let pageIndex = page.tag - pageIndexTagOffset
                 page.frame = frameForPageAtIndex(pageIndex)
                 page.setMaxMinZoomScalesForCurrentBounds()
+                if page.captionView != nil {
+                    page.captionView.frame = frameForCaptionView(page.captionView, index: pageIndex)
+                }
             }
         }
 
@@ -141,6 +144,13 @@ class SKPagingScrollView: UIScrollView {
 
             visiblePages.append(page)
             addSubview(page)
+
+            if let captionView: SKCaptionView = createCaptionView(index) {
+                captionView.frame = frameForCaptionView(captionView, index: index)
+                captionView.alpha = browser.areControlsHidden() ? 0 : 1
+                addSubview(captionView)
+                page.captionView = captionView
+            }
         }
     }
 
@@ -158,8 +168,44 @@ class SKPagingScrollView: UIScrollView {
         return nil
     }
 
+    func deleteImage() {
+        if numberOfPhotos > 0 {
+            visiblePages[0].captionView?.removeFromSuperview()
+        }
+    }
+
+    func frameForCaptionView(_ captionView: SKCaptionView, index: Int) -> CGRect {
+        let pageFrame = frameForPageAtIndex(index)
+        let captionSize = captionView.sizeThatFits(CGSize(width: pageFrame.size.width, height: 0))
+        let paginationFrame = browser?.paginationView.frame ?? .zero
+        let toolbarFrame = browser?.toolbar.frame ?? .zero
+        var frameSet = CGRect.zero
+        switch SKCaptionOptions.captionLocation {
+        case .basic:
+            frameSet = paginationFrame
+        case .bottom:
+            frameSet = toolbarFrame
+        }
+        return CGRect(x: pageFrame.origin.x,
+                      y: pageFrame.size.height - captionSize.height - frameSet.height,
+                      width: pageFrame.size.width, height: captionSize.height)
+    }
+
+    func getCaptionViews() -> Set<SKCaptionView> {
+        var captionViews = Set<SKCaptionView>()
+        visiblePages
+            .filter { $0.captionView != nil }
+            .forEach { captionViews.insert($0.captionView) }
+        return captionViews
+    }
+
     func setControlsHidden(hidden: Bool) {
-        // no caption views to animate
+        let captionViews = getCaptionViews()
+        let alpha: CGFloat = hidden ? 0.0 : 1.0
+        UIView.animate(withDuration: 0.35,
+                       animations: { () -> Void in
+                        captionViews.forEach { $0.alpha = alpha }
+                       }, completion: nil)
     }
 }
 
@@ -191,5 +237,15 @@ private extension SKPagingScrollView {
             return numberOfPhotos - 1
         }
         return lastIndex
+    }
+
+    func createCaptionView(_ index: Int) -> SKCaptionView? {
+        if let delegate = self.browser?.delegate, let ownCaptionView = delegate.captionViewForPhotoAtIndex?(index: index) {
+            return ownCaptionView
+        }
+        guard let photo = browser?.photoAtIndex(index), photo.caption != nil else {
+            return nil
+        }
+        return SKCaptionView(photo: photo)
     }
 }

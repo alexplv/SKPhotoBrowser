@@ -9,6 +9,7 @@
 import UIKit
 
 open class SKZoomingScrollView: UIScrollView {
+    var captionView: SKCaptionView!
     var photo: SKPhotoProtocol! {
         didSet {
             imageView.image = nil
@@ -126,7 +127,10 @@ open class SKZoomingScrollView: UIScrollView {
         let deviceScreenWidth = SKMesurement.screenWidth * scale // width in pixels. scale needs to remove if to use the old algorithm
         let deviceScreenHeight = SKMesurement.screenHeight * scale // height in pixels. scale needs to remove if to use the old algorithm
         
-        if imageView.frame.width < deviceScreenWidth {
+        if SKPhotoBrowserOptions.longPhotoWidthMatchScreen && imageView.frame.height >= imageView.frame.width {
+            minScale = 1.0
+            maxScale = 2.5
+        } else if imageView.frame.width < deviceScreenWidth {
             // I think that we should to get coefficient between device screen width and image width and assign it to maxScale. I made two mode that we will get the same result for different device orientations.
             if UIApplication.shared.statusBarOrientation.isPortrait {
                 maxScale = deviceScreenHeight / imageView.frame.width
@@ -159,6 +163,10 @@ open class SKZoomingScrollView: UIScrollView {
     
     open func prepareForReuse() {
         photo = nil
+        if captionView != nil {
+            captionView.removeFromSuperview()
+            captionView = nil
+        }
     }
     
     open func displayImage(_ image: UIImage) {
@@ -168,7 +176,12 @@ open class SKZoomingScrollView: UIScrollView {
         
         var imageViewFrame: CGRect = .zero
         imageViewFrame.origin = .zero
-        imageViewFrame.size = image.size
+        if SKPhotoBrowserOptions.longPhotoWidthMatchScreen && image.size.height >= image.size.width {
+            let imageHeight = SKMesurement.screenWidth / image.size.width * image.size.height
+            imageViewFrame.size = CGSize(width: SKMesurement.screenWidth, height: imageHeight)
+        } else {
+            imageViewFrame.size = image.size
+        }
         imageView.frame = imageViewFrame
         
         contentSize = imageViewFrame.size

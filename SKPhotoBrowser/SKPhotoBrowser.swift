@@ -29,6 +29,7 @@ open class SKPhotoBrowser: UIViewController {
     // child component
     fileprivate var actionView: SKActionView!
     fileprivate(set) var paginationView: SKPaginationView!
+    fileprivate(set) var toolbar: SKToolbar!
 
     // actions
     fileprivate var panGesture: UIPanGestureRecognizer?
@@ -102,6 +103,7 @@ open class SKPhotoBrowser: UIViewController {
         configureGestureControl()
         configureActionView()
         configurePaginationView()
+        configureToolbar()
 
         animator.willPresent(self)
     }
@@ -126,8 +128,16 @@ open class SKPhotoBrowser: UIViewController {
         // action
         actionView.updateFrame(frame: view.frame)
 
+        // toolbar
+        toolbar.frame = frameForToolbarAtOrientation()
+
         // paging
-        paginationView.updateFrame(frame: view.frame)
+        switch SKCaptionOptions.captionLocation {
+        case .basic:
+            paginationView.updateFrame(frame: view.frame)
+        case .bottom:
+            paginationView.frame = frameForPaginationAtOrientation()
+        }
         pagingScrollView.updateFrame(view.bounds, currentPageIndex: currentPageIndex)
 
         isPerformingLayout = false
@@ -335,6 +345,24 @@ internal extension SKPhotoBrowser {
         return CGRect(x: 0, y: self.view.bounds.size.height - CGFloat(offset), width: self.view.bounds.size.width, height: CGFloat(offset))
     }
 
+    func frameForToolbarAtOrientation() -> CGRect {
+        let offset: CGFloat = {
+            if #available(iOS 11.0, *) {
+                return view.safeAreaInsets.bottom
+            } else {
+                return 15
+            }
+        }()
+        let height: CGFloat = {
+            if #available(iOS 26.0, *) {
+                return 48
+            } else {
+                return 44
+            }
+        }()
+        return view.bounds.divided(atDistance: height, from: .maxYEdge).slice.offsetBy(dx: 0, dy: -offset)
+    }
+
     func frameForPageAtIndex(_ index: Int) -> CGRect {
         let bounds = pagingScrollView.bounds
         var pageFrame = bounds
@@ -416,6 +444,9 @@ private extension SKPhotoBrowser {
     func configurePagingScrollView() {
         pagingScrollView.delegate = self
         view.addSubview(pagingScrollView)
+        if SKPhotoBrowserOptions.protectScreenshot {
+            pagingScrollView.protectScreenshot()
+        }
     }
 
     func configureGestureControl() {
@@ -438,6 +469,11 @@ private extension SKPhotoBrowser {
     func configurePaginationView() {
         paginationView = SKPaginationView(frame: view.frame, browser: self)
         view.addSubview(paginationView)
+    }
+
+    func configureToolbar() {
+        toolbar = SKToolbar(frame: frameForToolbarAtOrientation(), browser: self)
+        view.addSubview(toolbar)
     }
 
     func setControlsHidden(_ hidden: Bool, animated: Bool, permanent: Bool) {
