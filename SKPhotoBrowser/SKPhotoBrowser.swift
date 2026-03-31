@@ -216,10 +216,7 @@ open class SKPhotoBrowser: UIViewController {
             nav.popViewController(animated: animated)
             onDismissed()
         } else {
-            if !animated {
-                modalTransitionStyle = .crossDissolve
-            }
-            dismiss(animated: !animated) {
+            dismiss(animated: animated) {
                 onDismissed()
             }
         }

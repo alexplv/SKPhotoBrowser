@@ -81,12 +81,12 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         guard let sender = browser.delegate?.viewForPhoto?(browser, index: browser.currentPageIndex),
             let image = browser.photoAtIndex(browser.currentPageIndex).underlyingImage,
             let scrollView = browser.pageDisplayedAtIndex(browser.currentPageIndex) else {
-                
+
             senderViewForAnimation?.isHidden = false
-            browser.dismissPhotoBrowser(animated: false) {
-                self.resizableImageView?.removeFromSuperview()
-                self.backgroundView.removeFromSuperview()
-            }
+            // No source view — dismiss instantly, pan animation already handled the visual exit
+            self.resizableImageView?.removeFromSuperview()
+            self.backgroundView.removeFromSuperview()
+            browser.dismissPhotoBrowser(animated: false)
             return
         }
 
@@ -196,7 +196,7 @@ private extension SKAnimator {
                 self.resizableImageView?.layer.frame = finalFrame
             },
             completion: { (_) -> Void in
-                browser.dismissPhotoBrowser(animated: true) {
+                browser.dismissPhotoBrowser(animated: false) {
                     self.resizableImageView?.removeFromSuperview()
                     self.backgroundView.removeFromSuperview()
                 }
