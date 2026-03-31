@@ -155,31 +155,48 @@ private extension SKAnimator {
 private extension SKAnimator {
     func presentAnimation(_ browser: SKPhotoBrowser, completion: (() -> Void)? = nil) {
         let finalFrame = self.finalImageViewFrame
-        browser.view.isHidden = true
-        browser.view.alpha = 0.0
-        
-        if #available(iOS 11.0, *) {
-            backgroundView.accessibilityIgnoresInvertColors = true
-            self.resizableImageView?.accessibilityIgnoresInvertColors = true
-        }
+        let hasSourceView = resizableImageView != nil
 
-        UIView.animate(
-            withDuration: animationDuration,
-            delay: 0,
-            usingSpringWithDamping: animationDamping,
-            initialSpringVelocity: 0,
-            options: UIView.AnimationOptions(),
-            animations: {
-                browser.showButtons()
+        backgroundView.accessibilityIgnoresInvertColors = true
+        resizableImageView?.accessibilityIgnoresInvertColors = true
+
+        if hasSourceView {
+            // Displacement animation — browser hidden until source image reaches final position
+            browser.view.isHidden = true
+            browser.view.alpha = 0.0
+
+            UIView.animate(
+                withDuration: animationDuration,
+                delay: 0,
+                usingSpringWithDamping: animationDamping,
+                initialSpringVelocity: 0
+            ) {
                 self.backgroundView.alpha = 1.0
                 self.resizableImageView?.frame = finalFrame
-            },
-            completion: { (_) -> Void in
+            } completion: { _ in
                 browser.view.alpha = 1.0
                 browser.view.isHidden = false
                 self.backgroundView.isHidden = true
                 self.resizableImageView?.alpha = 0.0
-            })
+                browser.showButtons()
+            }
+        } else {
+            // No source view — fade in browser + background together
+            browser.view.isHidden = false
+            browser.view.alpha = 0.0
+            self.backgroundView.alpha = 0.0
+
+            UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut) {
+                browser.view.alpha = 1.0
+                self.backgroundView.alpha = 1.0
+            } completion: { _ in
+                self.backgroundView.isHidden = true
+                // Delay controls slightly so the gallery content appears first
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                    browser.showButtons()
+                }
+            }
+        }
     }
     
     func dismissAnimation(_ browser: SKPhotoBrowser, completion: (() -> Void)? = nil) {
