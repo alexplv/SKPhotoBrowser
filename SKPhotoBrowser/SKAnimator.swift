@@ -181,17 +181,15 @@ private extension SKAnimator {
                 browser.showButtons()
             }
         } else {
-            // No source view — fade in browser + background together
+            // No source view — fade in browser directly, skip window-level backgroundView
+            self.backgroundView.isHidden = true
             browser.view.isHidden = false
             browser.view.alpha = 0.0
-            self.backgroundView.alpha = 0.0
 
             UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut) {
                 browser.view.alpha = 1.0
-                self.backgroundView.alpha = 1.0
             } completion: { _ in
-                self.backgroundView.isHidden = true
-                // Delay controls slightly so the gallery content appears first
+                // Delay controls slightly so the gallery content settles first
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                     browser.showButtons()
                 }

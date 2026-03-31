@@ -30,30 +30,33 @@ private enum Demo: CaseIterable {
     case counterHidden
     case customBackground
     case thumbnailGrid
+    case displacementTransition
 
     var title: String {
         switch self {
-        case .singleImage:        return "Single Image"
-        case .multipleImages:     return "Multiple Images (5)"
-        case .withCaptions:       return "With Captions"
-        case .swipeDismissOnly:   return "Swipe Dismiss Only (no close btn)"
-        case .closeButtonOnly:    return "Close Button Only (no swipe)"
-        case .counterHidden:      return "Counter Hidden"
-        case .customBackground:   return "Custom Background (dark gray)"
-        case .thumbnailGrid:      return "Thumbnail Grid (tap to open)"
+        case .singleImage:              return "Single Image"
+        case .multipleImages:           return "Multiple Images (5)"
+        case .withCaptions:             return "With Captions"
+        case .swipeDismissOnly:         return "Swipe Dismiss Only (no close btn)"
+        case .closeButtonOnly:          return "Close Button Only (no swipe)"
+        case .counterHidden:            return "Counter Hidden"
+        case .customBackground:         return "Custom Background (dark gray)"
+        case .thumbnailGrid:            return "Thumbnail Grid (fade transition)"
+        case .displacementTransition:   return "Displacement Transition"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .singleImage:        return "Basic single photo viewer"
-        case .multipleImages:     return "Paging, zoom, swipe dismiss, close"
-        case .withCaptions:       return "Each photo has a caption label"
-        case .swipeDismissOnly:   return "displayCloseButton = false"
-        case .closeButtonOnly:    return "disableVerticalSwipe = true"
-        case .counterHidden:      return "displayCounterLabel = false"
-        case .customBackground:   return "backgroundColor = .darkGray"
-        case .thumbnailGrid:      return "Grid → modal gallery, like real usage"
+        case .singleImage:              return "Basic single photo viewer"
+        case .multipleImages:           return "Paging, zoom, swipe dismiss, close"
+        case .withCaptions:             return "Each photo has a caption label"
+        case .swipeDismissOnly:         return "displayCloseButton = false"
+        case .closeButtonOnly:          return "disableVerticalSwipe = true"
+        case .counterHidden:            return "displayCounterLabel = false"
+        case .customBackground:         return "backgroundColor = .darkGray"
+        case .thumbnailGrid:            return "Grid → modal, no source view"
+        case .displacementTransition:   return "Grid → modal, zooms from thumbnail"
         }
     }
 }
@@ -134,7 +137,12 @@ class DemoListViewController: UITableViewController {
             startIndex = 0
 
         case .thumbnailGrid:
-            let gridVC = ThumbnailGridViewController()
+            let gridVC = ThumbnailGridViewController(useDisplacement: false)
+            navigationController?.pushViewController(gridVC, animated: true)
+            return
+
+        case .displacementTransition:
+            let gridVC = ThumbnailGridViewController(useDisplacement: true)
             navigationController?.pushViewController(gridVC, animated: true)
             return
         }
@@ -197,10 +205,18 @@ extension DemoListViewController: SKPhotoBrowserDelegate {
 class ThumbnailGridViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate {
 
     private var collectionView: UICollectionView!
+    private let useDisplacement: Bool
+
+    init(useDisplacement: Bool) {
+        self.useDisplacement = useDisplacement
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Tap a Photo"
+        title = useDisplacement ? "Displacement Transition" : "Fade Transition"
         view.backgroundColor = .systemBackground
 
         let layout = UICollectionViewCompositionalLayout { _, _ in
@@ -244,9 +260,23 @@ class ThumbnailGridViewController: UIViewController, UICollectionViewDataSource,
         SKPhotoBrowserOptions.disableVerticalSwipe = false
 
         let photos: [SKPhoto] = sampleURLs.map { SKPhoto.photoWithImageURL($0) }
-        let browser = SKPhotoBrowser(photos: photos, initialPageIndex: indexPath.item)
-        browser.delegate = self
-        present(browser, animated: true)
+
+        if useDisplacement {
+            // Displacement path — provide originImage + animatedFromView
+            // so the animator zooms from the tapped thumbnail
+            guard let cell = collectionView.cellForItem(at: indexPath) as? ThumbnailCell,
+                  let thumb = cell.imageView.image else { return }
+
+            let browser = SKPhotoBrowser(originImage: thumb, photos: photos, animatedFromView: cell.imageView)
+            browser.initializePageIndex(indexPath.item)
+            browser.delegate = self
+            present(browser, animated: true)
+        } else {
+            // Fade path — no source view, browser fades in directly
+            let browser = SKPhotoBrowser(photos: photos, initialPageIndex: indexPath.item)
+            browser.delegate = self
+            present(browser, animated: true)
+        }
     }
 }
 
@@ -257,6 +287,13 @@ extension ThumbnailGridViewController: SKPhotoBrowserDelegate {
 
     func didDismissAtPageIndex(_ index: Int) {
         print("[Grid] dismissed at \(index)")
+    }
+
+    // Displacement path needs this to know where to zoom back to on dismiss
+    func viewForPhoto(_ browser: SKPhotoBrowser, index: Int) -> UIView? {
+        guard useDisplacement else { return nil }
+        let ip = IndexPath(item: index, section: 0)
+        return (collectionView.cellForItem(at: ip) as? ThumbnailCell)?.imageView
     }
 }
 
