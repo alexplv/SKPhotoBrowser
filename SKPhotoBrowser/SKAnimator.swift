@@ -57,15 +57,49 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         let photo = browser.photoAtIndex(browser.currentPageIndex)
         let imageFromView = (senderOriginImage ?? browser.getImageFromView(sender)).rotateImageByOrientation()
         let imageRatio = imageFromView.size.width / imageFromView.size.height
-        
-        senderViewOriginalFrame = calcOriginFrame(sender)
+
+        let fullFrameInWindow = calcOriginFrame(sender)
+        let visibleInWindow = visibleRect(of: sender)
+
+        // If thumbnail is fully offscreen, fall back to fade
+        guard !visibleInWindow.isEmpty else {
+            presentAnimation(browser)
+            return
+        }
+
+        senderViewOriginalFrame = fullFrameInWindow
         finalImageViewFrame = calcFinalFrame(imageRatio)
         resizableImageView = UIImageView(image: imageFromView)
-        
+
         if let resizableImageView = resizableImageView {
             resizableImageView.frame = senderViewOriginalFrame
             resizableImageView.clipsToBounds = true
             resizableImageView.contentMode = photo.contentMode
+
+            // Mask to visible portion if partially clipped
+            let isPartiallyClipped = !visibleInWindow.contains(fullFrameInWindow)
+            if isPartiallyClipped {
+                let maskRect = CGRect(
+                    x: visibleInWindow.minX - fullFrameInWindow.minX,
+                    y: visibleInWindow.minY - fullFrameInWindow.minY,
+                    width: visibleInWindow.width,
+                    height: visibleInWindow.height
+                )
+                let maskLayer = CAShapeLayer()
+                maskLayer.path = UIBezierPath(rect: maskRect).cgPath
+                resizableImageView.layer.mask = maskLayer
+
+                // Animate mask to full bounds
+                let fullPath = UIBezierPath(rect: CGRect(origin: .zero, size: finalImageViewFrame.size)).cgPath
+                let maskAnimation = CABasicAnimation(keyPath: "path")
+                maskAnimation.fromValue = maskLayer.path
+                maskAnimation.toValue = fullPath
+                maskAnimation.duration = animationDuration
+                maskAnimation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                maskLayer.path = fullPath
+                maskLayer.add(maskAnimation, forKey: "maskExpand")
+            }
+
             if sender.layer.cornerRadius != 0 {
                 let duration = (animationDuration * Double(animationDamping))
                 resizableImageView.layer.masksToBounds = true
@@ -97,6 +131,10 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         backgroundView.backgroundColor = .clear
         senderViewOriginalFrame = calcOriginFrame(sender)
         
+        // Calculate visible rect of target thumbnail for masking
+        let targetFullFrame = senderViewOriginalFrame
+        let targetVisible = visibleRect(of: sender)
+
         if let resizableImageView = resizableImageView {
             let photo = browser.photoAtIndex(browser.currentPageIndex)
             let contentOffset = scrollView.contentOffset
@@ -113,6 +151,32 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
             resizableImageView.alpha = 1.0
             resizableImageView.clipsToBounds = true
             resizableImageView.contentMode = photo.contentMode
+
+            // Animate mask from full to visible portion if target is partially clipped
+            let isTargetClipped = !targetVisible.isEmpty && !targetVisible.contains(targetFullFrame)
+            if isTargetClipped {
+                let fullPath = UIBezierPath(rect: CGRect(origin: .zero, size: frame.size)).cgPath
+                let clippedRect = CGRect(
+                    x: targetVisible.minX - targetFullFrame.minX,
+                    y: targetVisible.minY - targetFullFrame.minY,
+                    width: targetVisible.width,
+                    height: targetVisible.height
+                )
+                let clippedPath = UIBezierPath(rect: clippedRect).cgPath
+
+                let maskLayer = CAShapeLayer()
+                maskLayer.path = fullPath
+                resizableImageView.layer.mask = maskLayer
+
+                let maskAnimation = CABasicAnimation(keyPath: "path")
+                maskAnimation.fromValue = fullPath
+                maskAnimation.toValue = clippedPath
+                maskAnimation.duration = animationDuration
+                maskAnimation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                maskLayer.path = clippedPath
+                maskLayer.add(maskAnimation, forKey: "maskShrink")
+            }
+
             if let view = senderViewForAnimation, view.layer.cornerRadius != 0 {
                 let duration = (animationDuration * Double(animationDamping))
                 resizableImageView.layer.masksToBounds = true
@@ -124,6 +188,23 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
 }
 
 private extension SKAnimator {
+    /// Returns the visible portion of the view in window coordinates,
+    /// accounting for all clipping ancestors (scroll views, sheets, etc.).
+    func visibleRect(of view: UIView) -> CGRect {
+        guard let window = view.window else { return .zero }
+        var rect = view.convert(view.bounds, to: window)
+        var current: UIView? = view.superview
+        while let ancestor = current {
+            if ancestor.clipsToBounds || ancestor.layer.masksToBounds {
+                let ancestorRect = ancestor.convert(ancestor.bounds, to: window)
+                rect = rect.intersection(ancestorRect)
+                if rect.isEmpty { return .zero }
+            }
+            current = ancestor.superview
+        }
+        return rect
+    }
+
     func calcOriginFrame(_ sender: UIView) -> CGRect {
         if let senderViewOriginalFrameTemp = sender.superview?.convert(sender.frame, to: nil) {
             return senderViewOriginalFrameTemp
