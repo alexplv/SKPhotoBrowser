@@ -89,13 +89,15 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
                 maskLayer.path = UIBezierPath(rect: maskRect).cgPath
                 resizableImageView.layer.mask = maskLayer
 
-                // Animate mask to full bounds
+                // Animate mask to full bounds — spring matches the frame animation
                 let fullPath = UIBezierPath(rect: CGRect(origin: .zero, size: finalImageViewFrame.size)).cgPath
-                let maskAnimation = CABasicAnimation(keyPath: "path")
+                let maskAnimation = CASpringAnimation(keyPath: "path")
                 maskAnimation.fromValue = maskLayer.path
                 maskAnimation.toValue = fullPath
-                maskAnimation.duration = animationDuration
-                maskAnimation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                maskAnimation.mass = 1.0
+                maskAnimation.stiffness = stiffness(forDamping: animationDamping, duration: animationDuration)
+                maskAnimation.damping = damping(forRatio: animationDamping, stiffness: maskAnimation.stiffness)
+                maskAnimation.duration = maskAnimation.settlingDuration
                 maskLayer.path = fullPath
                 maskLayer.add(maskAnimation, forKey: "maskExpand")
             }
@@ -168,11 +170,13 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
                 maskLayer.path = fullPath
                 resizableImageView.layer.mask = maskLayer
 
-                let maskAnimation = CABasicAnimation(keyPath: "path")
+                let maskAnimation = CASpringAnimation(keyPath: "path")
                 maskAnimation.fromValue = fullPath
                 maskAnimation.toValue = clippedPath
-                maskAnimation.duration = animationDuration
-                maskAnimation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                maskAnimation.mass = 1.0
+                maskAnimation.stiffness = stiffness(forDamping: animationDamping, duration: animationDuration)
+                maskAnimation.damping = damping(forRatio: animationDamping, stiffness: maskAnimation.stiffness)
+                maskAnimation.duration = maskAnimation.settlingDuration
                 maskLayer.path = clippedPath
                 maskLayer.add(maskAnimation, forKey: "maskShrink")
             }
@@ -188,6 +192,21 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
 }
 
 private extension SKAnimator {
+    // MARK: - Spring parameter conversion
+    // UIView.animate uses dampingRatio + duration, CASpringAnimation uses mass + stiffness + damping.
+    // These convert between the two so the mask animation matches the frame animation exactly.
+
+    func stiffness(forDamping dampingRatio: CGFloat, duration: TimeInterval) -> CGFloat {
+        let mass: CGFloat = 1.0
+        let omega = 2.0 * .pi / CGFloat(duration) // natural frequency
+        return mass * omega * omega
+    }
+
+    func damping(forRatio ratio: CGFloat, stiffness: CGFloat) -> CGFloat {
+        let mass: CGFloat = 1.0
+        return ratio * 2.0 * sqrt(mass * stiffness)
+    }
+
     /// Returns the visible portion of the view in window coordinates,
     /// accounting for all clipping ancestors (scroll views, sheets, etc.).
     func visibleRect(of view: UIView) -> CGRect {
