@@ -401,7 +401,11 @@ internal extension SKPhotoBrowser {
         if sender.state == .began {
             firstX = zoomingScrollView.center.x
             firstY = zoomingScrollView.center.y
-            targetCornerRadius = delegate?.viewForPhoto?(self, index: currentPageIndex)?.layer.cornerRadius ?? 0
+            let sourceView = delegate?.viewForPhoto?(self, index: currentPageIndex)
+            targetCornerRadius = sourceView?.layer.cornerRadius ?? 0
+            print("[PAN] began — delegate: \(delegate != nil), sourceView: \(String(describing: sourceView)), cornerRadius: \(targetCornerRadius)")
+            print("[PAN] zoomingSV frame: \(zoomingScrollView.frame), bounds: \(zoomingScrollView.bounds)")
+            print("[PAN] zoomingSV clipsToBounds: \(zoomingScrollView.clipsToBounds), layer.masksToBounds: \(zoomingScrollView.layer.masksToBounds)")
             setNeedsStatusBarAppearanceUpdate()
         }
 
@@ -418,11 +422,14 @@ internal extension SKPhotoBrowser {
 
         // Corner radius — applied to scrollView which is being scaled by the transform
         if targetCornerRadius > 0 {
-            // Compensate for scale: as the view shrinks, the visual corner radius
-            // gets proportionally larger, so divide by scale to keep it consistent
             let radius = targetCornerRadius * pow(progress, 1.2) / scale
             zoomingScrollView.layer.cornerRadius = radius
             zoomingScrollView.clipsToBounds = true
+            if sender.state == .changed && Int(dragDistance) % 50 == 0 {
+                print("[PAN] progress: \(String(format: "%.2f", progress)), scale: \(String(format: "%.2f", scale)), radius: \(String(format: "%.1f", radius)), layer.cornerRadius: \(zoomingScrollView.layer.cornerRadius)")
+            }
+        } else if sender.state == .changed && Int(dragDistance) % 100 == 0 {
+            print("[PAN] targetCornerRadius is 0 — no corner animation")
         }
 
         // Background — delayed start at 20%, soft ease-out, floors at 0.5 alpha
