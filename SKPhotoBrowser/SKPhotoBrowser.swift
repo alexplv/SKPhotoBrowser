@@ -406,6 +406,16 @@ internal extension SKPhotoBrowser {
             print("[PAN] began — delegate: \(delegate != nil), sourceView: \(String(describing: sourceView)), cornerRadius: \(targetCornerRadius)")
             print("[PAN] zoomingSV frame: \(zoomingScrollView.frame), bounds: \(zoomingScrollView.bounds)")
             print("[PAN] zoomingSV clipsToBounds: \(zoomingScrollView.clipsToBounds), layer.masksToBounds: \(zoomingScrollView.layer.masksToBounds)")
+            // Walk the view chain from imageView to window
+            var current: UIView? = zoomingScrollView.imageView
+            var depth = 0
+            while let v = current {
+                let type = String(describing: type(of: v))
+                print("[PAN] [\(depth)] \(type) — frame: \(v.frame), clips: \(v.clipsToBounds), cornerR: \(v.layer.cornerRadius), transform: \(v.transform)")
+                current = v.superview
+                depth += 1
+                if depth > 10 { break }
+            }
             setNeedsStatusBarAppearanceUpdate()
         }
 
