@@ -100,9 +100,12 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         if let resizableImageView = resizableImageView {
             let photo = browser.photoAtIndex(browser.currentPageIndex)
 
-            // Capture the visual frame and current corner radius from the drag state
+            // Capture the visual frame and current corner radius from the drag state.
+            // The imageView's cornerRadius is in its local (unscaled) coordinate space.
+            // Multiply by the imageView's scale transform to get the visual radius.
             let frame = scrollView.convert(scrollView.imageView.frame, to: nil)
-            let currentCornerRadius = scrollView.imageView.layer.cornerRadius
+            let imageScale = scrollView.imageView.transform.a * scrollView.transform.a
+            let currentCornerRadius = scrollView.imageView.layer.cornerRadius * imageScale
 
             // Reset transform and corner radius now that we've captured the visual state
             scrollView.transform = .identity
