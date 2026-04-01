@@ -430,22 +430,22 @@ internal extension SKPhotoBrowser {
         let scale = 1.0 - pow(progress, 1.4) * 0.2
         zoomingScrollView.transform = CGAffineTransform(scaleX: scale, y: scale)
 
-        // Corner radius — visually proportional to view width at current scale.
-        // A 12pt radius on a 400pt view is invisible. Instead, maintain the same
-        // visual corner-to-width ratio as the source thumbnail.
+        // Corner radius on the imageView directly (not the scrollView —
+        // the scrollView is 402x874 but the image is only ~402x268 centered inside,
+        // so corner radius on the scrollView clips empty space, not the image).
         if targetCornerRadius > 0 {
             let sourceView = delegate?.viewForPhoto?(self, index: currentPageIndex)
             let sourceWidth = sourceView?.bounds.width ?? 200
-            // Source ratio: e.g. 12pt / 193pt ≈ 6.2%
             let sourceRatio = targetCornerRadius / sourceWidth
-            // Apply same ratio to current visual width, eased by progress
-            let currentVisualWidth = zoomingScrollView.bounds.width * scale
-            // Radius in visual points, then compensate for scale (layer space is unscaled)
+            let imageWidth = zoomingScrollView.imageView.bounds.width
+            // The imageView has its own transform from zoom scale — use it
+            let imageScale = zoomingScrollView.imageView.transform.a
+            let currentVisualWidth = imageWidth * imageScale * scale
             let visualRadius = currentVisualWidth * sourceRatio * pow(progress, 0.8)
-            let layerRadius = visualRadius / scale
-            zoomingScrollView.layer.cornerRadius = layerRadius
-            zoomingScrollView.clipsToBounds = true
-            print("[PAN] radius — progress: \(String(format: "%.2f", progress)), visualW: \(String(format: "%.0f", currentVisualWidth)), visualR: \(String(format: "%.1f", visualRadius)), layerR: \(String(format: "%.1f", layerRadius))")
+            // ImageView layer radius is in its own local coords (pre-transform)
+            let layerRadius = visualRadius / (imageScale * scale)
+            zoomingScrollView.imageView.layer.cornerRadius = layerRadius
+            zoomingScrollView.imageView.clipsToBounds = true
         }
 
         // Background — delayed start at 20%, soft ease-out, floors at 0.5 alpha
@@ -509,7 +509,7 @@ internal extension SKPhotoBrowser {
                 ) {
                     zoomingScrollView.center = CGPoint(x: self.firstX, y: viewHalfHeight)
                     zoomingScrollView.transform = .identity
-                    zoomingScrollView.layer.cornerRadius = 0
+                    zoomingScrollView.imageView.layer.cornerRadius = 0
                     self.view.backgroundColor = self.bgColor
                 } completion: { [weak self] _ in
                     self?.setControlsHidden(false, animated: true, permanent: false)
