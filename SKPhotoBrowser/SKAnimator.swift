@@ -100,11 +100,13 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         if let resizableImageView = resizableImageView {
             let photo = browser.photoAtIndex(browser.currentPageIndex)
 
-            // Capture the visual frame (accounts for any transform scale/translate from drag)
+            // Capture the visual frame and current corner radius from the drag state
             let frame = scrollView.convert(scrollView.imageView.frame, to: nil)
+            let currentCornerRadius = scrollView.imageView.layer.cornerRadius
 
-            // Reset transform now that we've captured the visual state
+            // Reset transform and corner radius now that we've captured the visual state
             scrollView.transform = .identity
+            scrollView.imageView.layer.cornerRadius = 0
 
             resizableImageView.image = image.rotateImageByOrientation()
             resizableImageView.frame = frame
@@ -114,7 +116,8 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
             if let view = senderViewForAnimation, view.layer.cornerRadius != 0 {
                 let duration = (animationDuration * Double(animationDamping))
                 resizableImageView.layer.masksToBounds = true
-                resizableImageView.addCornerRadiusAnimation(0, to: view.layer.cornerRadius, duration: duration)
+                resizableImageView.layer.cornerRadius = currentCornerRadius
+                resizableImageView.addCornerRadiusAnimation(currentCornerRadius, to: view.layer.cornerRadius, duration: duration)
             }
         }
         dismissAnimation(browser)
