@@ -10,6 +10,7 @@ import UIKit
 
 class SKPaginationView: UIView {
     var counterLabel: UILabel?
+    private var capsuleContainer: UIView?
     private var margin: CGFloat = 100
     private var extraMargin: CGFloat = SKMesurement.isPhoneX ? 40 : 0
 
@@ -36,12 +37,23 @@ class SKPaginationView: UIView {
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         if let view = super.hitTest(point, with: event) {
-            if let counterLabel = counterLabel, counterLabel.frame.contains(point) {
+            if let capsule = capsuleContainer {
+                if capsule.frame.contains(point) { return view }
+            } else if let counterLabel = counterLabel, counterLabel.frame.contains(point) {
                 return view
             }
             return nil
         }
         return nil
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if let capsule = capsuleContainer {
+            capsule.layer.cornerRadius = capsule.bounds.height / 2
+            capsule.layer.cornerCurve = .continuous
+            capsule.clipsToBounds = true
+        }
     }
 
     func updateFrame(frame: CGRect) {
@@ -74,6 +86,14 @@ private extension SKPaginationView {
     func setupCounterLabel() {
         guard SKPhotoBrowserOptions.displayCounterLabel else { return }
 
+        if #available(iOS 18, *) {
+            setupGlassCounterLabel()
+        } else {
+            setupLegacyCounterLabel()
+        }
+    }
+
+    func setupLegacyCounterLabel() {
         let label = UILabel(frame: CGRect(x: 0, y: 0, width: 100, height: 50))
         label.center = CGPoint(x: frame.width / 2, y: frame.height / 2)
         label.textAlignment = .center
@@ -88,6 +108,50 @@ private extension SKPaginationView {
                                   .flexibleRightMargin,
                                   .flexibleTopMargin]
         addSubview(label)
+        counterLabel = label
+    }
+
+    @available(iOS 18, *)
+    func setupGlassCounterLabel() {
+        let effect: UIVisualEffect
+        if #available(iOS 26, *) {
+            effect = UIGlassEffect()
+        } else {
+            effect = UIBlurEffect(style: .systemChromeMaterialDark)
+        }
+
+        let capsule = UIView()
+        capsule.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(capsule)
+
+        let effectView = UIVisualEffectView(effect: effect)
+        effectView.translatesAutoresizingMaskIntoConstraints = false
+        effectView.isUserInteractionEnabled = false
+        capsule.addSubview(effectView)
+
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.textAlignment = .center
+        label.font = SKToolbarOptions.font
+        label.textColor = .white
+        effectView.contentView.addSubview(label)
+
+        NSLayoutConstraint.activate([
+            capsule.centerXAnchor.constraint(equalTo: centerXAnchor),
+            capsule.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            effectView.topAnchor.constraint(equalTo: capsule.topAnchor),
+            effectView.bottomAnchor.constraint(equalTo: capsule.bottomAnchor),
+            effectView.leadingAnchor.constraint(equalTo: capsule.leadingAnchor),
+            effectView.trailingAnchor.constraint(equalTo: capsule.trailingAnchor),
+
+            label.topAnchor.constraint(equalTo: effectView.contentView.topAnchor, constant: 6),
+            label.bottomAnchor.constraint(equalTo: effectView.contentView.bottomAnchor, constant: -6),
+            label.leadingAnchor.constraint(equalTo: effectView.contentView.leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(equalTo: effectView.contentView.trailingAnchor, constant: -16),
+        ])
+
+        capsuleContainer = capsule
         counterLabel = label
     }
 }

@@ -30,6 +30,8 @@ class SKButton: UIButton {
 }
 
 class SKCloseButton: SKButton {
+    private var backgroundEffectView: UIVisualEffectView?
+
     override var marginX: CGFloat {
         get { return SKButtonOptions.closeButtonPadding.x }
         set { super.marginX = newValue }
@@ -56,5 +58,34 @@ class SKCloseButton: SKButton {
         showFrame = CGRect(x: marginX, y: marginY, width: size.width, height: size.height)
         hideFrame = CGRect(x: marginX, y: -marginY, width: size.width, height: size.height)
         self.frame = showFrame
+
+        setupBackground()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        backgroundEffectView?.frame = bounds
+        backgroundEffectView?.layer.cornerRadius = bounds.width / 2
+    }
+
+    private func setupBackground() {
+        let effect: UIVisualEffect
+        if #available(iOS 26, *) {
+            effect = UIGlassEffect()
+        } else if #available(iOS 18, *) {
+            effect = UIBlurEffect(style: .systemChromeMaterialDark)
+        } else {
+            return
+        }
+
+        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .bold)
+        setImage(UIImage(systemName: "xmark")?.withConfiguration(config), for: .normal)
+
+        let ev = UIVisualEffectView(effect: effect)
+        ev.isUserInteractionEnabled = false
+        ev.clipsToBounds = true
+        ev.layer.cornerCurve = .continuous
+        insertSubview(ev, at: 0)
+        backgroundEffectView = ev
     }
 }
