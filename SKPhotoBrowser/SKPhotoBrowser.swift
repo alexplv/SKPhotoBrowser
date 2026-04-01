@@ -437,14 +437,15 @@ internal extension SKPhotoBrowser {
                 let hasSourceView = delegate?.viewForPhoto?(self, index: currentPageIndex) != nil
 
                 if hasSourceView {
-                    // Displacement — capture current visual frame (scaled + offset),
-                    // then hand off to animator which uses it as the starting position
-                    let currentScale = zoomingScrollView.transform.a // uniform scale
+                    // Displacement — capture current visual frame (scaled + offset)
+                    // in window coordinates, then hand off to animator
+                    let currentScale = zoomingScrollView.transform.a
                     let visualWidth = zoomingScrollView.bounds.width * currentScale
                     let visualHeight = zoomingScrollView.bounds.height * currentScale
+                    let centerInWindow = zoomingScrollView.superview?.convert(zoomingScrollView.center, to: nil) ?? zoomingScrollView.center
                     let visualFrame = CGRect(
-                        x: zoomingScrollView.center.x - visualWidth / 2,
-                        y: zoomingScrollView.center.y - visualHeight / 2,
+                        x: centerInWindow.x - visualWidth / 2,
+                        y: centerInWindow.y - visualHeight / 2,
                         width: visualWidth,
                         height: visualHeight
                     )
