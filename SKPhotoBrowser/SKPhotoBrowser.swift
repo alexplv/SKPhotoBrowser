@@ -42,6 +42,7 @@ open class SKPhotoBrowser: UIViewController {
     // pangesture property
     fileprivate var firstX: CGFloat = 0.0
     fileprivate var firstY: CGFloat = 0.0
+    fileprivate var targetCornerRadius: CGFloat = 0.0
 
     // timer
     fileprivate var controlVisibilityTimer: Timer!
@@ -400,6 +401,8 @@ internal extension SKPhotoBrowser {
         if sender.state == .began {
             firstX = zoomingScrollView.center.x
             firstY = zoomingScrollView.center.y
+            targetCornerRadius = delegate?.viewForPhoto?(self, index: currentPageIndex)?.layer.cornerRadius ?? 0
+            zoomingScrollView.clipsToBounds = true
             setNeedsStatusBarAppearanceUpdate()
         }
 
@@ -413,6 +416,9 @@ internal extension SKPhotoBrowser {
         // Scale — gentle ease-in curve, shrinks to 0.8 at max drag
         let scale = 1.0 - pow(progress, 1.4) * 0.2
         zoomingScrollView.transform = CGAffineTransform(scaleX: scale, y: scale)
+
+        // Corner radius — proportional to progress, eased
+        zoomingScrollView.layer.cornerRadius = targetCornerRadius * pow(progress, 1.2)
 
         // Background — delayed start at 20%, soft ease-out, floors at 0.5 alpha
         let bgThreshold: CGFloat = 0.2
@@ -475,6 +481,7 @@ internal extension SKPhotoBrowser {
                 ) {
                     zoomingScrollView.center = CGPoint(x: self.firstX, y: viewHalfHeight)
                     zoomingScrollView.transform = .identity
+                    zoomingScrollView.layer.cornerRadius = 0
                     self.view.backgroundColor = self.bgColor
                 } completion: { [weak self] _ in
                     self?.setControlsHidden(false, animated: true, permanent: false)
