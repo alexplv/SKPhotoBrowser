@@ -416,10 +416,13 @@ internal extension SKPhotoBrowser {
         let scale = 1.0 - pow(progress, 1.4) * 0.2
         zoomingScrollView.transform = CGAffineTransform(scaleX: scale, y: scale)
 
-        // Corner radius on the image — proportional to progress, eased
+        // Corner radius — applied to scrollView which is being scaled by the transform
         if targetCornerRadius > 0 {
-            zoomingScrollView.imageView.layer.cornerRadius = targetCornerRadius * pow(progress, 1.2)
-            zoomingScrollView.imageView.clipsToBounds = true
+            // Compensate for scale: as the view shrinks, the visual corner radius
+            // gets proportionally larger, so divide by scale to keep it consistent
+            let radius = targetCornerRadius * pow(progress, 1.2) / scale
+            zoomingScrollView.layer.cornerRadius = radius
+            zoomingScrollView.clipsToBounds = true
         }
 
         // Background — delayed start at 20%, soft ease-out, floors at 0.5 alpha
@@ -483,7 +486,7 @@ internal extension SKPhotoBrowser {
                 ) {
                     zoomingScrollView.center = CGPoint(x: self.firstX, y: viewHalfHeight)
                     zoomingScrollView.transform = .identity
-                    zoomingScrollView.imageView.layer.cornerRadius = 0
+                    zoomingScrollView.layer.cornerRadius = 0
                     self.view.backgroundColor = self.bgColor
                 } completion: { [weak self] _ in
                     self?.setControlsHidden(false, animated: true, permanent: false)
