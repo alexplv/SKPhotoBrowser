@@ -29,6 +29,8 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
     internal var senderOriginImage: UIImage!
     internal var senderViewOriginalFrame: CGRect = .zero
     internal var senderViewForAnimation: UIView?
+    /// Set by pan gesture before dismiss — the visual frame of the image at the moment the finger lifted.
+    internal var dismissStartFrame: CGRect?
 
     fileprivate var animationDuration: TimeInterval {
         if SKPhotoBrowserOptions.bounceAnimation { return 0.5 }
@@ -99,14 +101,23 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
 
         if let resizableImageView = resizableImageView {
             let photo = browser.photoAtIndex(browser.currentPageIndex)
-            let contentOffset = scrollView.contentOffset
-            let scrollFrame = scrollView.imageView.frame
-            let offsetY = scrollView.center.y - (scrollView.bounds.height/2)
-            let frame = CGRect(
-                x: scrollFrame.origin.x - contentOffset.x,
-                y: scrollFrame.origin.y + contentOffset.y + offsetY - scrollView.contentOffset.y,
-                width: scrollFrame.width,
-                height: scrollFrame.height)
+
+            // Use the visual frame captured by the pan gesture if available,
+            // otherwise fall back to calculating from layout coordinates
+            let frame: CGRect
+            if let startFrame = dismissStartFrame {
+                frame = startFrame
+                dismissStartFrame = nil
+            } else {
+                let contentOffset = scrollView.contentOffset
+                let scrollFrame = scrollView.imageView.frame
+                let offsetY = scrollView.center.y - (scrollView.bounds.height / 2)
+                frame = CGRect(
+                    x: scrollFrame.origin.x - contentOffset.x,
+                    y: scrollFrame.origin.y + contentOffset.y + offsetY - scrollView.contentOffset.y,
+                    width: scrollFrame.width,
+                    height: scrollFrame.height)
+            }
 
             resizableImageView.image = image.rotateImageByOrientation()
             resizableImageView.frame = frame
