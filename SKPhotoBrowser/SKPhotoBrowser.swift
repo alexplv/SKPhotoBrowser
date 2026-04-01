@@ -420,16 +420,19 @@ internal extension SKPhotoBrowser {
         let scale = 1.0 - pow(progress, 1.4) * 0.2
         zoomingScrollView.transform = CGAffineTransform(scaleX: scale, y: scale)
 
-        // Corner radius — applied to scrollView which is being scaled by the transform
+        // Corner radius — scale proportionally to the view's current visual width
+        // At full screen (progress=0) → 0pt. As the view shrinks toward thumbnail size,
+        // the radius grows to match the source thumbnail's corner radius.
         if targetCornerRadius > 0 {
-            let radius = targetCornerRadius * pow(progress, 1.2) / scale
+            let viewWidth = zoomingScrollView.bounds.width
+            let sourceWidth = delegate?.viewForPhoto?(self, index: currentPageIndex)?.bounds.width ?? viewWidth
+            // Ratio: how much the view has shrunk toward the source size
+            // At progress=0 the view is full width; as it scales down the ratio approaches 1.0
+            let currentVisualWidth = viewWidth * scale
+            let shrinkRatio = max(0, 1.0 - (currentVisualWidth - sourceWidth) / (viewWidth - sourceWidth))
+            let radius = targetCornerRadius * shrinkRatio / scale
             zoomingScrollView.layer.cornerRadius = radius
             zoomingScrollView.clipsToBounds = true
-            if sender.state == .changed && Int(dragDistance) % 50 == 0 {
-                print("[PAN] progress: \(String(format: "%.2f", progress)), scale: \(String(format: "%.2f", scale)), radius: \(String(format: "%.1f", radius)), layer.cornerRadius: \(zoomingScrollView.layer.cornerRadius)")
-            }
-        } else if sender.state == .changed && Int(dragDistance) % 100 == 0 {
-            print("[PAN] targetCornerRadius is 0 — no corner animation")
         }
 
         // Background — delayed start at 20%, soft ease-out, floors at 0.5 alpha
