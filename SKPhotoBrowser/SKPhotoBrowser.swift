@@ -420,19 +420,22 @@ internal extension SKPhotoBrowser {
         let scale = 1.0 - pow(progress, 1.4) * 0.2
         zoomingScrollView.transform = CGAffineTransform(scaleX: scale, y: scale)
 
-        // Corner radius — scale proportionally to the view's current visual width
-        // At full screen (progress=0) → 0pt. As the view shrinks toward thumbnail size,
-        // the radius grows to match the source thumbnail's corner radius.
+        // Corner radius — visually proportional to view width at current scale.
+        // A 12pt radius on a 400pt view is invisible. Instead, maintain the same
+        // visual corner-to-width ratio as the source thumbnail.
         if targetCornerRadius > 0 {
-            let viewWidth = zoomingScrollView.bounds.width
-            let sourceWidth = delegate?.viewForPhoto?(self, index: currentPageIndex)?.bounds.width ?? viewWidth
-            // Ratio: how much the view has shrunk toward the source size
-            // At progress=0 the view is full width; as it scales down the ratio approaches 1.0
-            let currentVisualWidth = viewWidth * scale
-            let shrinkRatio = max(0, 1.0 - (currentVisualWidth - sourceWidth) / (viewWidth - sourceWidth))
-            let radius = targetCornerRadius * shrinkRatio / scale
-            zoomingScrollView.layer.cornerRadius = radius
+            let sourceView = delegate?.viewForPhoto?(self, index: currentPageIndex)
+            let sourceWidth = sourceView?.bounds.width ?? 200
+            // Source ratio: e.g. 12pt / 193pt ≈ 6.2%
+            let sourceRatio = targetCornerRadius / sourceWidth
+            // Apply same ratio to current visual width, eased by progress
+            let currentVisualWidth = zoomingScrollView.bounds.width * scale
+            // Radius in visual points, then compensate for scale (layer space is unscaled)
+            let visualRadius = currentVisualWidth * sourceRatio * pow(progress, 0.8)
+            let layerRadius = visualRadius / scale
+            zoomingScrollView.layer.cornerRadius = layerRadius
             zoomingScrollView.clipsToBounds = true
+            print("[PAN] radius — progress: \(String(format: "%.2f", progress)), visualW: \(String(format: "%.0f", currentVisualWidth)), visualR: \(String(format: "%.1f", visualRadius)), layerR: \(String(format: "%.1f", layerRadius))")
         }
 
         // Background — delayed start at 20%, soft ease-out, floors at 0.5 alpha
