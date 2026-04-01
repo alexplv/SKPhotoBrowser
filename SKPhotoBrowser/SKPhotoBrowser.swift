@@ -402,7 +402,6 @@ internal extension SKPhotoBrowser {
             firstX = zoomingScrollView.center.x
             firstY = zoomingScrollView.center.y
             targetCornerRadius = delegate?.viewForPhoto?(self, index: currentPageIndex)?.layer.cornerRadius ?? 0
-            zoomingScrollView.clipsToBounds = true
             setNeedsStatusBarAppearanceUpdate()
         }
 
@@ -417,8 +416,11 @@ internal extension SKPhotoBrowser {
         let scale = 1.0 - pow(progress, 1.4) * 0.2
         zoomingScrollView.transform = CGAffineTransform(scaleX: scale, y: scale)
 
-        // Corner radius — proportional to progress, eased
-        zoomingScrollView.layer.cornerRadius = targetCornerRadius * pow(progress, 1.2)
+        // Corner radius on the image — proportional to progress, eased
+        if targetCornerRadius > 0 {
+            zoomingScrollView.imageView.layer.cornerRadius = targetCornerRadius * pow(progress, 1.2)
+            zoomingScrollView.imageView.clipsToBounds = true
+        }
 
         // Background — delayed start at 20%, soft ease-out, floors at 0.5 alpha
         let bgThreshold: CGFloat = 0.2
@@ -481,7 +483,7 @@ internal extension SKPhotoBrowser {
                 ) {
                     zoomingScrollView.center = CGPoint(x: self.firstX, y: viewHalfHeight)
                     zoomingScrollView.transform = .identity
-                    zoomingScrollView.layer.cornerRadius = 0
+                    zoomingScrollView.imageView.layer.cornerRadius = 0
                     self.view.backgroundColor = self.bgColor
                 } completion: { [weak self] _ in
                     self?.setControlsHidden(false, animated: true, permanent: false)
