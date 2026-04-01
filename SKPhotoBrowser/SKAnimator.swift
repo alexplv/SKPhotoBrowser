@@ -67,6 +67,8 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
             resizableImageView.clipsToBounds = true
             resizableImageView.contentMode = photo.contentMode
             let sourceRadius = sender.layer.cornerRadius
+            print("[PRESENT] sender: \(type(of: sender)), frame: \(sender.frame), cornerRadius: \(sourceRadius), clipsToBounds: \(sender.clipsToBounds)")
+            print("[PRESENT] resizableImageView frame: \(resizableImageView.frame), finalFrame: \(finalImageViewFrame)")
             if sourceRadius != 0 {
                 let duration = (animationDuration * Double(animationDamping))
                 resizableImageView.layer.cornerRadius = sourceRadius
