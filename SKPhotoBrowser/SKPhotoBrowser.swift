@@ -341,7 +341,7 @@ public extension SKPhotoBrowser {
 
 internal extension SKPhotoBrowser {
     func showButtons() {
-        animateNavBar(hidden: false)
+        setControlsHidden(false, animated: true, permanent: false)
     }
 
     func pageDisplayedAtIndex(_ index: Int) -> SKZoomingScrollView? {
@@ -658,7 +658,6 @@ private extension SKPhotoBrowser {
     }
 
     func animateNavBar(hidden: Bool) {
-        guard hidden == true else { return }
         guard SKPhotoBrowserOptions.displayCloseButton else { return }
         let alpha: CGFloat = hidden ? 0.0 : 1.0
         UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
@@ -671,7 +670,6 @@ private extension SKPhotoBrowser {
     }
 
     func setControlsHidden(_ hidden: Bool, animated: Bool, permanent: Bool) {
-        guard hidden == true else { return }
         // timer update
         cancelControlHiding()
 

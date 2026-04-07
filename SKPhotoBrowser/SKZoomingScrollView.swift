@@ -171,7 +171,7 @@ open class SKZoomingScrollView: UIScrollView {
     }
     
     open func displayImage(_ image: UIImage) {
-        // image
+        indicatorView.stopAnimating()
         imageView.image = image
         imageView.contentMode = photo.contentMode
         
@@ -197,7 +197,8 @@ open class SKZoomingScrollView: UIScrollView {
         zoomScale = 1
         
         if !flag {
-            if photo.underlyingImage == nil {
+            let needsRemote = photo.needsRemoteLoad ?? (photo.underlyingImage == nil)
+            if needsRemote {
                 indicatorView.startAnimating()
             }
             photo.loadUnderlyingImageAndNotify()

@@ -13,16 +13,31 @@ import UIKit
     var underlyingImage: UIImage! { get }
     var caption: String? { get }
     var contentMode: UIView.ContentMode { get set }
+    /// Whether the full-resolution image requires a remote fetch.
+    /// Return `false` when the image is already cached or available locally
+    /// so the browser skips the loading indicator entirely.
+    @objc optional var needsRemoteLoad: Bool { get }
     func loadUnderlyingImageAndNotify()
     func checkCache()
 }
 
 // MARK: - SKPhoto
 open class SKPhoto: NSObject, SKPhotoProtocol {
+    /// Set this to let `needsRemoteLoad` check a third-party image cache
+    /// (e.g. Kingfisher, SDWebImage). Return `true` if the URL is cached.
+    /// Usage: `SKPhoto.imageCacheCheck = { ImageCache.default.isCached(forKey: $0) }`
+    public static var imageCacheCheck: ((String) -> Bool)?
+
     open var index: Int = 0
     open var underlyingImage: UIImage!
     open var caption: String?
     open var contentMode: UIView.ContentMode = .scaleAspectFill
+    open var needsRemoteLoad: Bool {
+        guard let url = photoURL else { return false }
+        if underlyingImage != nil { return false }
+        if let check = SKPhoto.imageCacheCheck, check(url) { return false }
+        return true
+    }
     open var photoURL: String!
 
     override init() {

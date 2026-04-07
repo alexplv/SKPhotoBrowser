@@ -25,7 +25,7 @@ public struct SKPhotoBrowserOptions {
 
     public static var backgroundColor: UIColor = .black
     public static var indicatorColor: UIColor = .white
-    public static var indicatorStyle: UIActivityIndicatorView.Style = .whiteLarge
+    public static var indicatorStyle: UIActivityIndicatorView.Style = .medium
 
     public static var disableVerticalSwipe: Bool = false
     public static var longPhotoWidthMatchScreen: Bool = false

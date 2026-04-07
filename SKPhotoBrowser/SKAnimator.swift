@@ -64,6 +64,9 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         finalImageViewFrame = calcFinalFrame(imageRatio)
         resizableImageView = UIImageView(image: imageFromView)
 
+        senderViewForAnimation = sender
+        sender.isHidden = true
+
         if let resizableImageView = resizableImageView {
             resizableImageView.frame = senderViewOriginalFrame
             resizableImageView.clipsToBounds = true
@@ -248,6 +251,7 @@ private extension SKAnimator {
                 self.resizableImageView?.layer.frame = finalFrame
             },
             completion: { (_) -> Void in
+                self.senderViewForAnimation?.isHidden = false
                 browser.dismissPhotoBrowser(animated: false) {
                     self.resizableImageView?.removeFromSuperview()
                     self.backgroundView.removeFromSuperview()

@@ -8,6 +8,30 @@
 
 import UIKit
 
+// MARK: - Close Button
+
+class SKCloseButton: UIButton {
+    init(action: Selector, target: Any) {
+        super.init(frame: .zero)
+        let config = UIImage.SymbolConfiguration(pointSize: 44, weight: .ultraLight)
+            .applying(UIImage.SymbolConfiguration(paletteColors: [.white, .white.withAlphaComponent(0.15)]))
+        let image = UIImage(systemName: "xmark.circle.fill", withConfiguration: config)
+        setImage(image, for: .normal)
+        imageView?.contentMode = .scaleAspectFit
+        contentHorizontalAlignment = .center
+        contentVerticalAlignment = .center
+        if let size = image?.size {
+            NSLayoutConstraint.activate([
+                widthAnchor.constraint(equalToConstant: size.width),
+                heightAnchor.constraint(equalToConstant: size.height),
+            ])
+        }
+        addTarget(target, action: action, for: .touchUpInside)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+}
+
 // MARK: - Bar Button Item Factory
 
 enum SKBarButtonItemFactory {
@@ -18,11 +42,8 @@ enum SKBarButtonItemFactory {
             })
             return item
         } else {
-            let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
-            let image = UIImage(systemName: "xmark", withConfiguration: config)
-            let item = UIBarButtonItem(image: image, style: .plain, target: target, action: action)
-            item.tintColor = .white
-            return item
+            let button = SKCloseButton(action: action, target: target)
+            return UIBarButtonItem(customView: button)
         }
     }
 }
