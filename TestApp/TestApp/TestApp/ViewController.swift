@@ -431,6 +431,8 @@ private class ThumbnailCell: UICollectionViewCell {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.backgroundColor = .systemGray5
+        iv.layer.cornerRadius = 4
+        iv.layer.cornerCurve = .continuous
         return iv
     }()
 

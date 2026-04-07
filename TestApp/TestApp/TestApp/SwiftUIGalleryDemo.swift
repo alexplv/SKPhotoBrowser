@@ -6,6 +6,7 @@ import SKPhotoBrowser
 /// Transparent UIViewRepresentable overlay that exposes a real UIView reference
 /// for bridging SwiftUI → UIKit displacement transitions.
 struct ViewAnchor: UIViewRepresentable {
+    var cornerRadius: CGFloat = 0
     let onViewReady: (UIView) -> Void
 
     func makeUIView(context: Context) -> UIView {
@@ -16,6 +17,8 @@ struct ViewAnchor: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
+        uiView.layer.cornerRadius = cornerRadius
+        uiView.layer.cornerCurve = .continuous
         DispatchQueue.main.async {
             onViewReady(uiView)
         }
@@ -96,7 +99,7 @@ struct SwiftUIGalleryDemoView: View {
             .clipShape(RoundedRectangle(cornerRadius: 4))
             .opacity(hiddenIndex == index ? 0 : 1)
             .overlay {
-                ViewAnchor { view in
+                ViewAnchor(cornerRadius: 4) { view in
                     anchorViews[index] = view
                 }
             }

@@ -73,10 +73,6 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
             let sourceRadius = sender.layer.cornerRadius
             resizableImageView.layer.cornerRadius = sourceRadius
             resizableImageView.layer.cornerCurve = .continuous
-            if sourceRadius != 0 {
-                let duration = (animationDuration * Double(animationDamping))
-                resizableImageView.addCornerRadiusAnimation(sourceRadius, to: 0, duration: duration)
-            }
             window?.addSubview(resizableImageView)
         }
 
@@ -97,10 +93,13 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         }
 
         senderViewForAnimation = sender
+        // Carry over the current visual background alpha from the drag state
+        // so the handoff from browser.view to window-level backgroundView is seamless.
+        let currentBgAlpha = browser.view.backgroundColor?.cgColor.alpha ?? 1.0
         browser.view.isHidden = true
         backgroundView.isHidden = false
-        backgroundView.alpha = 1.0
-        backgroundView.backgroundColor = .clear
+        backgroundView.backgroundColor = SKPhotoBrowserOptions.backgroundColor
+        backgroundView.alpha = currentBgAlpha
         senderViewOriginalFrame = calcOriginFrame(sender)
 
         if let resizableImageView = resizableImageView {
@@ -206,6 +205,7 @@ private extension SKAnimator {
             ) {
                 self.backgroundView.alpha = 1.0
                 self.resizableImageView?.frame = finalFrame
+                self.resizableImageView?.layer.cornerRadius = 0
             }
             presentAnim.addCompletion { [weak self] position in
                 self?.presentAnimator = nil

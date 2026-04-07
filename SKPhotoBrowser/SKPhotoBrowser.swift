@@ -91,7 +91,7 @@ open class SKPhotoBrowser: UIViewController {
     func setup() {
         modalPresentationCapturesStatusBarAppearance = true
         modalPresentationStyle = .custom
-        modalTransitionStyle = .crossDissolve
+        transitioningDelegate = self
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(handleSKPhotoLoadingDidEndNotification(_:)),
                                                name: NSNotification.Name(rawValue: SKPHOTO_LOADING_DID_END_NOTIFICATION),
@@ -721,5 +721,34 @@ extension SKPhotoBrowser: UIScrollViewDelegate {
 
     public func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
         isEndAnimationByToolBar = true
+    }
+}
+
+// MARK: - UIViewControllerTransitioningDelegate
+// Zero-duration UIKit transition so touches are not blocked during
+// the custom present animation driven by SKAnimator.
+
+extension SKPhotoBrowser: UIViewControllerTransitioningDelegate {
+    public func animationController(forPresented presented: UIViewController, presenting: UIViewController, source: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+        return SKInstantPresentAnimator()
+    }
+
+    public func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+        return SKInstantPresentAnimator()
+    }
+}
+
+private final class SKInstantPresentAnimator: NSObject, UIViewControllerAnimatedTransitioning {
+    func transitionDuration(using transitionContext: (any UIViewControllerContextTransitioning)?) -> TimeInterval {
+        return 0
+    }
+
+    func animateTransition(using transitionContext: any UIViewControllerContextTransitioning) {
+        if let toVC = transitionContext.viewController(forKey: .to),
+           let toView = transitionContext.view(forKey: .to) {
+            toView.frame = transitionContext.finalFrame(for: toVC)
+            transitionContext.containerView.addSubview(toView)
+        }
+        transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
     }
 }
