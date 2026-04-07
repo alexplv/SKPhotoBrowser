@@ -73,6 +73,7 @@ open class SKZoomingScrollView: UIScrollView {
         delegate = self
         showsHorizontalScrollIndicator = false
         showsVerticalScrollIndicator = false
+        contentInsetAdjustmentBehavior = .never
         autoresizingMask = [.flexibleWidth, .flexibleTopMargin, .flexibleBottomMargin, .flexibleRightMargin, .flexibleLeftMargin]
     }
     

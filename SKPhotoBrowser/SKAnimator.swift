@@ -16,7 +16,8 @@ import UIKit
 class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
     fileprivate let window = UIApplication.shared.preferredApplicationWindow
     fileprivate var resizableImageView: UIImageView?
-    fileprivate var finalImageViewFrame: CGRect = .zero
+    fileprivate var presentAnimator: UIViewPropertyAnimator?
+    internal var finalImageViewFrame: CGRect = .zero
 
     internal lazy var backgroundView: UIView = {
         guard let window = UIApplication.shared.preferredApplicationWindow else { fatalError() }
@@ -24,6 +25,7 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         let backgroundView = UIView(frame: window.frame)
         backgroundView.backgroundColor = SKPhotoBrowserOptions.backgroundColor
         backgroundView.alpha = 0.0
+        backgroundView.isUserInteractionEnabled = false
         return backgroundView
     }()
     internal var senderOriginImage: UIImage!
@@ -69,7 +71,6 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
             resizableImageView.contentMode = .scaleAspectFill
 
             let sourceRadius = sender.layer.cornerRadius
-            print("[PRESENT] sender: \(type(of: sender)), cornerRadius: \(sourceRadius), senderFrame: \(senderViewOriginalFrame), finalFrame: \(finalImageViewFrame)")
             resizableImageView.layer.cornerRadius = sourceRadius
             resizableImageView.layer.cornerCurve = .continuous
             if sourceRadius != 0 {
@@ -130,6 +131,26 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
         }
         dismissAnimation(browser)
     }
+
+    func interruptPresent(in browser: SKPhotoBrowser) -> CGRect? {
+        guard let animator = presentAnimator, animator.isRunning else { return nil }
+
+        // Capture visual frame from presentation layer before stopping
+        let currentFrame = resizableImageView?.layer.presentation()?.frame
+            ?? resizableImageView?.frame ?? .zero
+
+        // Stop animation (completion fires with .current, skips final setup)
+        animator.stopAnimation(true)
+        presentAnimator = nil
+
+        // Visual swap: browser content takes over from window-level views
+        browser.view.backgroundColor = SKPhotoBrowserOptions.backgroundColor
+        browser.pagingScrollView.alpha = 1.0
+        backgroundView.isHidden = true
+        resizableImageView?.alpha = 0.0
+
+        return currentFrame
+    }
 }
 
 private extension SKAnimator {
@@ -170,38 +191,45 @@ private extension SKAnimator {
         resizableImageView?.accessibilityIgnoresInvertColors = true
 
         if hasSourceView {
-            // Displacement animation — browser hidden until source image reaches final position
-            browser.view.isHidden = true
-            browser.view.alpha = 0.0
+            // Displacement animation — browser view stays interactive throughout.
+            // Hide content via subview alpha so the view itself remains touchable
+            // (UIView.hitTest returns nil when alpha < 0.01).
+            browser.view.isHidden = false
+            browser.view.backgroundColor = .clear
+            for subview in browser.view.subviews {
+                subview.alpha = 0.0
+            }
 
-            UIView.animate(
-                withDuration: animationDuration,
-                delay: 0,
-                usingSpringWithDamping: animationDamping,
-                initialSpringVelocity: 0
+            let presentAnim = UIViewPropertyAnimator(
+                duration: animationDuration,
+                dampingRatio: animationDamping
             ) {
                 self.backgroundView.alpha = 1.0
                 self.resizableImageView?.frame = finalFrame
-            } completion: { _ in
-                browser.view.alpha = 1.0
-                browser.view.isHidden = false
-                self.backgroundView.isHidden = true
-                self.resizableImageView?.alpha = 0.0
+            }
+            presentAnim.addCompletion { [weak self] position in
+                self?.presentAnimator = nil
+                guard position == .end else { return }
+                print("[SKPhotoBrowser] image stabilized after present animation")
+                browser.view.backgroundColor = SKPhotoBrowserOptions.backgroundColor
+                browser.pagingScrollView.alpha = 1.0
+                self?.backgroundView.isHidden = true
+                self?.resizableImageView?.alpha = 0.0
                 browser.showButtons()
             }
+            self.presentAnimator = presentAnim
+            presentAnim.startAnimation()
         } else {
             // No source view — fade in browser directly, skip window-level backgroundView
             self.backgroundView.isHidden = true
             browser.view.isHidden = false
             browser.view.alpha = 0.0
 
-            UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut) {
+            UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
                 browser.view.alpha = 1.0
             } completion: { _ in
-                // Delay controls slightly so the gallery content settles first
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                    browser.showButtons()
-                }
+                print("[SKPhotoBrowser] image stabilized after present animation")
+                browser.showButtons()
             }
         }
     }

@@ -34,6 +34,7 @@ class SKPagingScrollView: UIScrollView {
         isPagingEnabled = true
         showsHorizontalScrollIndicator = SKPhotoBrowserOptions.displayPagingHorizontalScrollIndicator
         showsVerticalScrollIndicator = false
+        contentInsetAdjustmentBehavior = .never
 
         updateFrame(bounds, currentPageIndex: browser.currentPageIndex)
     }
@@ -202,7 +203,7 @@ class SKPagingScrollView: UIScrollView {
     func setControlsHidden(hidden: Bool) {
         let captionViews = getCaptionViews()
         let alpha: CGFloat = hidden ? 0.0 : 1.0
-        UIView.animate(withDuration: 0.35,
+        UIView.animate(withDuration: 0.35, delay: 0, options: .allowUserInteraction,
                        animations: { () -> Void in
                         captionViews.forEach { $0.alpha = alpha }
                        }, completion: nil)

@@ -27,7 +27,7 @@ open class SKPhotoBrowser: UIViewController {
     let animator: SKAnimator = .init()
 
     // child component
-    fileprivate var actionView: SKActionView!
+    private var standaloneNavBar: UINavigationBar?
     fileprivate(set) var paginationView: SKPaginationView!
     fileprivate(set) var toolbar: SKToolbar!
 
@@ -43,6 +43,8 @@ open class SKPhotoBrowser: UIViewController {
     fileprivate var firstX: CGFloat = 0.0
     fileprivate var firstY: CGFloat = 0.0
     fileprivate var targetCornerRadius: CGFloat = 0.0
+    fileprivate var isCompletingPresent = false
+    fileprivate var naturalPanCenter: CGPoint = .zero
 
     // timer
     fileprivate var controlVisibilityTimer: Timer!
@@ -102,9 +104,9 @@ open class SKPhotoBrowser: UIViewController {
         configureAppearance()
         configurePagingScrollView()
         configureGestureControl()
-        configureActionView()
         configurePaginationView()
         configureToolbar()
+        configureNavigationBar()
 
         animator.willPresent(self)
     }
@@ -125,9 +127,6 @@ open class SKPhotoBrowser: UIViewController {
         isPerformingLayout = true
         // where did start
         delegate?.didShowPhotoAtIndex?(self, index: currentPageIndex)
-
-        // action
-        actionView.updateFrame(frame: view.frame)
 
         // toolbar
         toolbar.frame = frameForToolbarAtOrientation()
@@ -233,7 +232,13 @@ open class SKPhotoBrowser: UIViewController {
 
 public extension SKPhotoBrowser {
     func updateCloseButton(_ image: UIImage, size: CGSize? = nil) {
-        actionView.updateCloseButton(image: image, size: size)
+        let item = UIBarButtonItem(image: image, style: .plain, target: self, action: #selector(closeButtonPressed))
+        item.tintColor = .white
+        if let standaloneNavBar = standaloneNavBar {
+            standaloneNavBar.topItem?.leftBarButtonItem = item
+        } else {
+            navigationItem.leftBarButtonItem = item
+        }
     }
 }
 
@@ -289,7 +294,13 @@ public extension SKPhotoBrowser {
     func hideControlsAfterDelay() {
         guard shouldAutoHideControlls else { return }
         cancelControlHiding()
-        controlVisibilityTimer = Timer.scheduledTimer(timeInterval: autoHideControllsfadeOutDelay, target: self, selector: #selector(SKPhotoBrowser.hideControls(_:)), userInfo: nil, repeats: false)
+        controlVisibilityTimer = Timer.scheduledTimer(
+            timeInterval: autoHideControllsfadeOutDelay,
+            target: self,
+            selector: #selector(SKPhotoBrowser.hideControls(_:)),
+            userInfo: nil,
+            repeats: false
+        )
     }
 
     func hideControls() {
@@ -330,7 +341,7 @@ public extension SKPhotoBrowser {
 
 internal extension SKPhotoBrowser {
     func showButtons() {
-        actionView.animate(hidden: false)
+        animateNavBar(hidden: false)
     }
 
     func pageDisplayedAtIndex(_ index: Int) -> SKZoomingScrollView? {
@@ -399,23 +410,43 @@ internal extension SKPhotoBrowser {
 
         // gesture began
         if sender.state == .began {
-            firstX = zoomingScrollView.center.x
-            firstY = zoomingScrollView.center.y
             let sourceView = delegate?.viewForPhoto?(self, index: currentPageIndex)
             targetCornerRadius = sourceView?.layer.cornerRadius ?? 0
-            print("[PAN] began — delegate: \(delegate != nil), sourceView: \(String(describing: sourceView)), cornerRadius: \(targetCornerRadius)")
-            print("[PAN] zoomingSV frame: \(zoomingScrollView.frame), bounds: \(zoomingScrollView.bounds)")
-            print("[PAN] zoomingSV clipsToBounds: \(zoomingScrollView.clipsToBounds), layer.masksToBounds: \(zoomingScrollView.layer.masksToBounds)")
-            // Walk the view chain from imageView to window
-            var current: UIView? = zoomingScrollView.imageView
-            var depth = 0
-            while let v = current {
-                let type = String(describing: type(of: v))
-                print("[PAN] [\(depth)] \(type) — frame: \(v.frame), clips: \(v.clipsToBounds), cornerR: \(v.layer.cornerRadius), transform: \(v.transform)")
-                current = v.superview
-                depth += 1
-                if depth > 10 { break }
+
+            if let currentFrame = animator.interruptPresent(in: self) {
+                // Interrupted present animation — swap to browser content
+                naturalPanCenter = zoomingScrollView.center
+
+                let interruptedCenter = pagingScrollView.convert(
+                    CGPoint(x: currentFrame.midX, y: currentFrame.midY),
+                    from: nil
+                )
+                let scale = currentFrame.width / animator.finalImageViewFrame.width
+
+                zoomingScrollView.center = interruptedCenter
+                zoomingScrollView.transform = CGAffineTransform(scaleX: scale, y: scale)
+
+                firstX = interruptedCenter.x
+                firstY = interruptedCenter.y
+                isCompletingPresent = true
+
+                // Continue zoom-in as spring while finger controls position
+                UIView.animate(
+                    withDuration: 0.3,
+                    delay: 0,
+                    usingSpringWithDamping: 1.0,
+                    initialSpringVelocity: 0,
+                    options: .allowUserInteraction
+                ) {
+                    zoomingScrollView.transform = .identity
+                } completion: { [weak self] _ in
+                    self?.isCompletingPresent = false
+                }
+            } else {
+                firstX = zoomingScrollView.center.x
+                firstY = zoomingScrollView.center.y
             }
+
             setNeedsStatusBarAppearanceUpdate()
         }
 
@@ -423,29 +454,32 @@ internal extension SKPhotoBrowser {
         let dragDistance = abs(translationY)
         let progress = min(dragDistance / viewHalfHeight, 1.0)
 
-        // Move image
+        // Move image — always follows finger
         zoomingScrollView.center = CGPoint(x: firstX, y: firstY + translationY)
 
-        // Scale — gentle ease-in curve, shrinks to 0.8 at max drag
-        let scale = 1.0 - pow(progress, 1.4) * 0.2
-        zoomingScrollView.transform = CGAffineTransform(scaleX: scale, y: scale)
+        // During zoom-in completion, spring handles the scale
+        if !isCompletingPresent {
+            // Scale — gentle ease-in curve, shrinks to 0.8 at max drag
+            let scale = 1.0 - pow(progress, 1.4) * 0.2
+            zoomingScrollView.transform = CGAffineTransform(scaleX: scale, y: scale)
 
-        // Corner radius on the imageView directly (not the scrollView —
-        // the scrollView is 402x874 but the image is only ~402x268 centered inside,
-        // so corner radius on the scrollView clips empty space, not the image).
-        if targetCornerRadius > 0 {
-            let sourceView = delegate?.viewForPhoto?(self, index: currentPageIndex)
-            let sourceWidth = sourceView?.bounds.width ?? 200
-            let sourceRatio = targetCornerRadius / sourceWidth
-            let imageWidth = zoomingScrollView.imageView.bounds.width
-            // The imageView has its own transform from zoom scale — use it
-            let imageScale = zoomingScrollView.imageView.transform.a
-            let currentVisualWidth = imageWidth * imageScale * scale
-            let visualRadius = currentVisualWidth * sourceRatio * pow(progress, 0.8)
-            // ImageView layer radius is in its own local coords (pre-transform)
-            let layerRadius = visualRadius / (imageScale * scale)
-            zoomingScrollView.imageView.layer.cornerRadius = layerRadius
-            zoomingScrollView.imageView.clipsToBounds = true
+            // Corner radius on the imageView directly (not the scrollView —
+            // the scrollView is 402x874 but the image is only ~402x268 centered inside,
+            // so corner radius on the scrollView clips empty space, not the image).
+            if targetCornerRadius > 0 {
+                let sourceView = delegate?.viewForPhoto?(self, index: currentPageIndex)
+                let sourceWidth = sourceView?.bounds.width ?? 200
+                let sourceRatio = targetCornerRadius / sourceWidth
+                let imageWidth = zoomingScrollView.imageView.bounds.width
+                // The imageView has its own transform from zoom scale — use it
+                let imageScale = zoomingScrollView.imageView.transform.a
+                let currentVisualWidth = imageWidth * imageScale * scale
+                let visualRadius = currentVisualWidth * sourceRatio * pow(progress, 0.8)
+                // ImageView layer radius is in its own local coords (pre-transform)
+                let layerRadius = visualRadius / (imageScale * scale)
+                zoomingScrollView.imageView.layer.cornerRadius = layerRadius
+                zoomingScrollView.imageView.clipsToBounds = true
+            }
         }
 
         // Background — delayed start at 20%, soft ease-out, floors at 0.5 alpha
@@ -463,8 +497,26 @@ internal extension SKPhotoBrowser {
 
         // gesture end
         if sender.state == .ended {
-            let isDismissing = zoomingScrollView.center.y > viewHalfHeight + dismissThreshold
-                || zoomingScrollView.center.y < viewHalfHeight - dismissThreshold
+            // Freeze zoom-in spring at current visual state if still active
+            if isCompletingPresent {
+                if let presentation = zoomingScrollView.layer.presentation() {
+                    let t = presentation.transform
+                    zoomingScrollView.layer.removeAllAnimations()
+                    zoomingScrollView.transform = CATransform3DGetAffineTransform(t)
+                }
+            }
+
+            let isDismissing: Bool
+            if isCompletingPresent {
+                // Use drag displacement for threshold when interrupted mid-present
+                isDismissing = abs(translationY) > dismissThreshold
+            } else {
+                isDismissing = zoomingScrollView.center.y > viewHalfHeight + dismissThreshold
+                    || zoomingScrollView.center.y < viewHalfHeight - dismissThreshold
+            }
+
+            let wasCompletingPresent = isCompletingPresent
+            isCompletingPresent = false
 
             if isDismissing {
                 // Check if displacement source exists
@@ -488,7 +540,7 @@ internal extension SKPhotoBrowser {
                         delay: 0,
                         usingSpringWithDamping: 1.0,
                         initialSpringVelocity: springVelocity,
-                        options: .curveEaseOut
+                        options: [.curveEaseOut, .allowUserInteraction]
                     ) {
                         zoomingScrollView.center = exitTarget
                         zoomingScrollView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
@@ -499,15 +551,19 @@ internal extension SKPhotoBrowser {
                 }
 
             } else {
-                // Cancelled — spring back softly
+                // Cancelled — spring back to natural position
+                let targetCenter = wasCompletingPresent
+                    ? naturalPanCenter
+                    : CGPoint(x: firstX, y: viewHalfHeight)
+
                 UIView.animate(
                     withDuration: 0.5,
                     delay: 0,
                     usingSpringWithDamping: 0.78,
                     initialSpringVelocity: 0.2,
-                    options: .curveEaseOut
+                    options: [.curveEaseOut, .allowUserInteraction]
                 ) {
-                    zoomingScrollView.center = CGPoint(x: self.firstX, y: viewHalfHeight)
+                    zoomingScrollView.center = targetCenter
                     zoomingScrollView.transform = .identity
                     zoomingScrollView.imageView.layer.cornerRadius = 0
                     self.view.backgroundColor = self.bgColor
@@ -526,6 +582,8 @@ private extension SKPhotoBrowser {
         view.clipsToBounds = true
         view.isOpaque = false
         view.accessibilityIgnoresInvertColors = true
+        edgesForExtendedLayout = .all
+        extendedLayoutIncludesOpaqueBars = true
     }
 
     func configurePagingScrollView() {
@@ -548,11 +606,6 @@ private extension SKPhotoBrowser {
         }
     }
 
-    func configureActionView() {
-        actionView = SKActionView(frame: view.frame, browser: self)
-        view.addSubview(actionView)
-    }
-
     func configurePaginationView() {
         paginationView = SKPaginationView(frame: view.frame, browser: self)
         view.addSubview(paginationView)
@@ -563,7 +616,62 @@ private extension SKPhotoBrowser {
         view.addSubview(toolbar)
     }
 
+    func configureNavigationBar() {
+        let closeItem = SKBarButtonItemFactory.closeBarButtonItem(target: self, action: #selector(closeButtonPressed))
+
+        if let navController = navigationController {
+            navigationItem.leftBarButtonItem = SKPhotoBrowserOptions.displayCloseButton ? closeItem : nil
+            makeNavigationBarTransparent(navController.navigationBar)
+        } else {
+            let navBar = UINavigationBar()
+            navBar.translatesAutoresizingMaskIntoConstraints = false
+            makeNavigationBarTransparent(navBar)
+
+            let navItem = UINavigationItem()
+            navItem.leftBarButtonItem = SKPhotoBrowserOptions.displayCloseButton ? closeItem : nil
+            navBar.setItems([navItem], animated: false)
+
+            view.addSubview(navBar)
+            NSLayoutConstraint.activate([
+                navBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+                navBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                navBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            ])
+
+            standaloneNavBar = navBar
+        }
+    }
+
+    @objc func closeButtonPressed() {
+        determineAndClose()
+    }
+
+    func makeNavigationBarTransparent(_ navBar: UINavigationBar) {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        navBar.standardAppearance = appearance
+        navBar.scrollEdgeAppearance = appearance
+        navBar.compactAppearance = appearance
+        navBar.isTranslucent = true
+        navBar.backgroundColor = .clear
+        navBar.overrideUserInterfaceStyle = .dark
+    }
+
+    func animateNavBar(hidden: Bool) {
+        guard hidden == true else { return }
+        guard SKPhotoBrowserOptions.displayCloseButton else { return }
+        let alpha: CGFloat = hidden ? 0.0 : 1.0
+        UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
+            if let standaloneNavBar = self.standaloneNavBar {
+                standaloneNavBar.alpha = alpha
+            } else {
+                self.navigationController?.navigationBar.alpha = alpha
+            }
+        }
+    }
+
     func setControlsHidden(_ hidden: Bool, animated: Bool, permanent: Bool) {
+        guard hidden == true else { return }
         // timer update
         cancelControlHiding()
 
@@ -573,8 +681,8 @@ private extension SKPhotoBrowser {
         // paging animation
         paginationView.setControlsHidden(hidden: hidden)
 
-        // action view animation
-        actionView.animate(hidden: hidden)
+        // nav bar animation
+        animateNavBar(hidden: hidden)
 
         if !hidden && !permanent {
             hideControlsAfterDelay()
