@@ -95,6 +95,10 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
             return
         }
 
+        // Unhide the original present thumbnail if dismissing from a different page
+        if senderViewForAnimation !== sender {
+            senderViewForAnimation?.isHidden = false
+        }
         senderViewForAnimation = sender
         // Carry over the current visual background alpha from the drag state
         // so the handoff from browser.view to window-level backgroundView is seamless.
@@ -213,7 +217,7 @@ private extension SKAnimator {
             presentAnim.addCompletion { [weak self] position in
                 self?.presentAnimator = nil
                 guard position == .end else { return }
-                print("[SKPhotoBrowser] image stabilized after present animation")
+
                 browser.view.backgroundColor = SKPhotoBrowserOptions.backgroundColor
                 browser.pagingScrollView.alpha = 1.0
                 self?.backgroundView.isHidden = true
@@ -231,7 +235,7 @@ private extension SKAnimator {
             UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
                 browser.view.alpha = 1.0
             } completion: { _ in
-                print("[SKPhotoBrowser] image stabilized after present animation")
+
                 browser.showButtons()
             }
         }
@@ -245,7 +249,7 @@ private extension SKAnimator {
             delay: 0,
             usingSpringWithDamping: animationDamping,
             initialSpringVelocity: 0,
-            options: UIView.AnimationOptions(),
+            options: .allowUserInteraction,
             animations: {
                 self.backgroundView.alpha = 0.0
                 self.resizableImageView?.layer.frame = finalFrame

@@ -20,12 +20,6 @@ class SKCloseButton: UIButton {
         imageView?.contentMode = .scaleAspectFit
         contentHorizontalAlignment = .center
         contentVerticalAlignment = .center
-        if let size = image?.size {
-            NSLayoutConstraint.activate([
-                widthAnchor.constraint(equalToConstant: size.width),
-                heightAnchor.constraint(equalToConstant: size.height),
-            ])
-        }
         addTarget(target, action: action, for: .touchUpInside)
     }
 
@@ -37,8 +31,9 @@ class SKCloseButton: UIButton {
 enum SKBarButtonItemFactory {
     static func closeBarButtonItem(target: Any, action: Selector) -> UIBarButtonItem {
         if #available(iOS 26.0, *) {
+            weak var weakTarget = target as AnyObject
             let item = UIBarButtonItem(systemItem: .close, primaryAction: UIAction { _ in
-                _ = (target as AnyObject).perform(action)
+                _ = weakTarget?.perform(action)
             })
             return item
         } else {

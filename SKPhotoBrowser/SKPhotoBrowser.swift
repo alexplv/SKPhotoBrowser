@@ -43,6 +43,7 @@ open class SKPhotoBrowser: UIViewController {
     fileprivate var firstX: CGFloat = 0.0
     fileprivate var firstY: CGFloat = 0.0
     fileprivate var targetCornerRadius: CGFloat = 0.0
+    fileprivate var targetSourceWidth: CGFloat = 0.0
     fileprivate var isCompletingPresent = false
     fileprivate var naturalPanCenter: CGPoint = .zero
 
@@ -412,6 +413,7 @@ internal extension SKPhotoBrowser {
         if sender.state == .began {
             let sourceView = delegate?.viewForPhoto?(self, index: currentPageIndex)
             targetCornerRadius = sourceView?.layer.cornerRadius ?? 0
+            targetSourceWidth = sourceView?.bounds.width ?? 200
 
             if let currentFrame = animator.interruptPresent(in: self) {
                 // Interrupted present animation — swap to browser content
@@ -467,9 +469,7 @@ internal extension SKPhotoBrowser {
             // the scrollView is 402x874 but the image is only ~402x268 centered inside,
             // so corner radius on the scrollView clips empty space, not the image).
             if targetCornerRadius > 0 {
-                let sourceView = delegate?.viewForPhoto?(self, index: currentPageIndex)
-                let sourceWidth = sourceView?.bounds.width ?? 200
-                let sourceRatio = targetCornerRadius / sourceWidth
+                let sourceRatio = targetCornerRadius / targetSourceWidth
                 let imageWidth = zoomingScrollView.imageView.bounds.width
                 // The imageView has its own transform from zoom scale — use it
                 let imageScale = zoomingScrollView.imageView.transform.a
@@ -705,6 +705,8 @@ extension SKPhotoBrowser: UIScrollViewDelegate {
         currentPageIndex = min(max(Int(floor(visibleBounds.midX / visibleBounds.width)), 0), photos.count - 1)
 
         if currentPageIndex != previousCurrentPage {
+            delegate?.viewForPhoto?(self, index: previousCurrentPage)?.isHidden = false
+            delegate?.viewForPhoto?(self, index: currentPageIndex)?.isHidden = true
             delegate?.didShowPhotoAtIndex?(self, index: currentPageIndex)
             paginationView.update(currentPageIndex)
         }

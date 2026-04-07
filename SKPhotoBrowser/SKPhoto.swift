@@ -67,10 +67,8 @@ open class SKPhoto: NSObject, SKPhotoProtocol {
     open func loadUnderlyingImageAndNotify() {
         guard photoURL != nil, let url = URL(string: photoURL) else { return }
 
-        let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: url) { [weak self] data, _, error in
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
             guard let self = self else { return }
-            defer { session.finishTasksAndInvalidate() }
 
             guard error == nil, let data = data else {
                 DispatchQueue.main.async { self.loadUnderlyingImageComplete() }
@@ -82,8 +80,7 @@ open class SKPhoto: NSObject, SKPhotoProtocol {
                 self.underlyingImage = image
                 self.loadUnderlyingImageComplete()
             }
-        }
-        task.resume()
+        }.resume()
     }
 
     open func loadUnderlyingImageComplete() {

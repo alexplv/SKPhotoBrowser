@@ -224,23 +224,16 @@ open class SKZoomingScrollView: UIScrollView {
         if let browser = browser {
             NSObject.cancelPreviousPerformRequests(withTarget: browser)
         }
-        
-        if zoomScale > minimumZoomScale {
-            // zoom out
-            setZoomScale(minimumZoomScale, animated: true)
-        } else {
-            // zoom in
-            // I think that the result should be the same after double touch or pinch
-            /* var newZoom: CGFloat = zoomScale * 3.13
-             if newZoom >= maximumZoomScale {
-             newZoom = maximumZoomScale
-             }
-             */
-            let zoomRect = zoomRectForScrollViewWith(maximumZoomScale, touchPoint: touchPoint)
-            zoom(to: zoomRect, animated: true)
+
+        UIView.animate(withDuration: 0.2, delay: 0, options: .curveEaseInOut) {
+            if self.zoomScale > self.minimumZoomScale {
+                self.zoomScale = self.minimumZoomScale
+            } else {
+                let zoomRect = self.zoomRectForScrollViewWith(self.maximumZoomScale, touchPoint: touchPoint)
+                self.zoom(to: zoomRect, animated: false)
+            }
         }
-        
-        // delay control
+
         browser?.hideControlsAfterDelay()
     }
 }
