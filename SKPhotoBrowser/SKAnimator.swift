@@ -84,7 +84,6 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
 
     func willDismiss(_ browser: SKPhotoBrowser) {
         guard let sender = browser.delegate?.viewForPhoto?(browser, index: browser.currentPageIndex),
-            let image = browser.photoAtIndex(browser.currentPageIndex).underlyingImage,
             let scrollView = browser.pageDisplayedAtIndex(browser.currentPageIndex) else {
 
             senderViewForAnimation?.isHidden = false
@@ -123,7 +122,11 @@ class SKAnimator: NSObject, SKPhotoBrowserAnimatorDelegate {
             scrollView.transform = .identity
             scrollView.imageView.layer.cornerRadius = 0
 
-            resizableImageView.image = image.rotateImageByOrientation()
+            // Use the full-size image if it has loaded; otherwise keep the displacement
+            // thumbnail already in resizableImageView (fast dismiss before async load completes).
+            if let loadedImage = photo.underlyingImage {
+                resizableImageView.image = loadedImage.rotateImageByOrientation()
+            }
             resizableImageView.frame = frame
             resizableImageView.alpha = 1.0
             resizableImageView.clipsToBounds = true
